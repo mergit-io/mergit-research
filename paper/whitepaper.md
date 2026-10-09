@@ -105,9 +105,9 @@ Three design rules follow:
 
 - **Stake caps accessible task value** at `V ≤ λS − c_exec`. An under-collateralized agent cannot
   accept a task whose falsification it could profit from.
-- **Collateral trades against audit frequency.** More stake means a lower audit rate suffices. (This
-  substitution is established in the verifiable-inference literature [34]; we adapt rather than
-  claim it.)
+- **Collateral trades against audit frequency.** More stake means a lower audit rate suffices. We
+  claim no part of this: the condition belongs to the inspection-game and proof-of-stake slashing
+  lineage [21,22], and the verifiable-inference literature states it as a baseline test [34].
 - **Challenge is the cheapest deterrence available.** Routine auditing becomes economically
   unnecessary once `q > (V + c_exec)/λS`. At `V = $2`, `c_exec = $1`, `S = $30`, that threshold is
   `q = 0.1` — if a false receipt faces better than a one-in-ten chance of challenge, the audit
@@ -193,13 +193,17 @@ is the deeper reason task value is capped by collateral.
 | Bittensor [7,8] | Stake-weighted validator scoring | Inflation-funded commodity production, not per-task settlement |
 | Olas [9,10] | Stake tied to verified activity | Activity/KPI rewards, not outcome-contingent payment with clawback |
 | Fetch.ai [11,12] | Agent identity credentials, domain-linked trust | Identity and discovery, not verification economics |
-| Verifiable inference [34,35,36] | Stake, probabilistic audit, slashing, challenge | **Assumes re-executability**; no reputation system; no cost-adjusted trust |
+| Verifiable inference [34,35,36] | Stake, probabilistic audit, slashing, challenge, repeated-game analysis, reputation-weighted penalties | **Assumes re-executability** — disputes terminate in deterministic replay; reputation weights penalties, not selection, and excludes cost |
 
-We are explicit about what is not ours. That stake trades against audit frequency is established
-[34]. That attestation composes with optimistic challenge is published [36]. The gap we claim is
-narrower and more defensible: **no existing protocol verifies multi-step, tool-using,
-side-effecting agent work under economic incentives, and none makes resource efficiency a dimension
-of trust.**
+We are explicit about what is not ours. The stake-versus-audit-rate condition belongs to the
+inspection-game and slashing literature [21,22,34]. That attestation composes with optimistic
+challenge is published [36], whose dispute path explicitly requires bit-wise deterministic replay.
+Reputation itself is not new even in this literature — [34] maintains a Bayesian posterior over
+provider type to scale penalties — though it is not used for *selection* and does not include cost.
+
+The gap we claim is correspondingly narrow and, we think, defensible: **no existing protocol
+verifies multi-step, tool-using, side-effecting agent work under economic incentives, and none uses
+reputation over verified quality *per unit cost* to route work.**
 
 ## 5. What we are not claiming
 
@@ -214,7 +218,14 @@ longer than this section; the essentials:
   flagship domain.
 - **Attestation relocates trust to hardware vendors.** A compromised TEE yields well-formed receipts
   about fictional execution, detectable only by external contradiction. Stake, challenge, external
-  state binding, and vendor diversity reduce this; they do not close it.
+  state binding, and vendor diversity reduce this; they do not close it. Deterministic systems have
+  a better answer than we do — a broken TEE there degrades to an ordinary optimistic sequencer whose
+  bad outputs are caught by replay [36] — and that remedy does not transfer to work that cannot be
+  replayed. This is the principal cost of our setting.
+- **Our audit rule needs strengthening under repeated play.** A one-shot audit threshold is provably
+  insufficient against a provider who interacts repeatedly when slashing is partial [34], and our
+  high stake-to-value ratio sits in the adverse regime. The fix — scheduling audits from the same
+  reputation posteriors we already maintain — is cheap for us but not yet proven adequate.
 - **Routine verification is centralized at v1.** We operate validators initially; challenge is
   permissionless from day one and our own stake is slashable, but we do not call v1's verification
   path decentralized.

@@ -453,19 +453,47 @@ schedules audits and slashes a fraction of stake on detected cheating [34]. That
 the substitutions available to a mechanism designer — raising signal responsiveness cuts the
 required baseline audit rate from 0.370 to 0.145 at a discount factor of 0.95, while uniformly
 raising audit rates increases verification cost linearly across every honest query [34]. Optimistic
-TEE-rollups further combine trusted-execution attestation with optimistic challenge to reduce
-verification cost [36].
+TEE-rollups combine trusted-execution attestation with optimistic challenge in a three-tier design
+for generative inference: provisional finality from a TEE attestation quote, a fraud-proof
+"fisherman" window, and VRF-triggered stochastic zero-knowledge spot-checks at a sampling rate of
+roughly 0.01 [36]. That work also scales assurance to stake at risk, applying a spot-check rate of
+zero to a trivial query and one to a high-value trade [36] — a precedent we adopt in §7.2.
+
+Three further aspects of [34] bear on our claims and we record them precisely, since a loose reading
+would both over- and under-credit it. Its one-shot incentive test is explicitly *not* presented as
+its contribution — it attributes the condition to existing slashing and inspection-game literature,
+as we do (§7.2). Its actual thesis is an impossibility result: memoryless bounded-slashing
+mechanisms admit profitable deviations under repeated interaction, which is a direct challenge to
+any design resting on the one-shot rule, ours included (§7.5). And it does build a reputation
+component — a Bayesian posterior over provider type used to weight *penalties* — together with a
+formal treatment of whitewashing giving conditions under which respawning a fresh identity is
+unprofitable, which we cite in §8.6 alongside the classical sources.
 
 **We build on this rather than compete with it, and state plainly what it means for our claims.**
-That stake trades against audit frequency is established [34], not contributed here; that
-attestation can be combined with optimistic challenge is published [36], not contributed here. Our
-§7 is an adaptation of this analysis.
+That assurance can be traded across mechanism parameters, and specifically that signal
+responsiveness substitutes for baseline audit budget, is established in [34], not contributed here;
+that attestation can be combined with optimistic challenge is published in [36], not contributed
+here. Our §7 is an adaptation of this lineage, and §7.5 is a response to its strongest objection
+rather than an extension of its favorable results.
 
-What every one of these assumes is re-executability. The audited object is a function evaluation
-that a verifier can recompute and compare. The literature's own difficulties when that assumption
-weakens are instructive: non-determinism defeats bit-exact comparison even for floating-point
-neural network evaluation, requiring nondeterminism-aware protocols [37], and a parallel line of
-work engineers determinism into inference specifically so that results can be verified [38]. Agent
+One observation in [34] strengthens our position rather than weakening it. It notes that
+re-execution audits are themselves noisy — floating-point non-determinism and hardware heterogeneity
+can produce false disagreement between an honest provider and an honest auditor. If re-execution is
+already an imperfect oracle for a single pure inference call, the case for treating it as the
+foundation of verification for multi-step side-effecting work is weaker still.
+
+What every one of these assumes is re-executability, and in the clearest case the assumption is
+explicit rather than implicit: [36]'s dispute path has a challenger recompute the model locally
+*under bit-wise deterministic settings* and compare, with divergence resolved by interactive
+bisection — first over transformer layers, then over individual matrix multiplications — until a
+single disputed operation can be executed on-chain. Deterministic replay is not an incidental
+feature of that design but the terminating step of its dispute protocol, and bit-wise determinism is
+a stated precondition.
+
+The literature's own difficulties when the assumption weakens are instructive: non-determinism
+defeats bit-exact comparison even for floating-point neural network evaluation, requiring
+nondeterminism-aware protocols [37], and a parallel line of work engineers determinism into
+inference specifically so that results can be verified [38]. Agent
 execution violates the assumption outright and not marginally — the non-determinism is not
 numerical noise but a different sequence of actions upon a world the first execution already
 altered (§1.3). To our knowledge no existing protocol verifies multi-step, tool-using,
@@ -489,7 +517,7 @@ score quality or satisfaction, whereas we score verified quality per unit metere
 | Payment rails | x402 [3,4], Agent TCP/IP [13] | Machine-to-machine settlement at scale | Pays for access, not verified outcome; final, non-revocable |
 | Marketplaces & escrow | Virtuals ACP [6], Olas [9,10] | Escrow, evaluation, reputation-sensitive terms | Evaluation is counterparty judgment or KPI report; no execution attestation; cost not a trust signal |
 | Validator incentives | Bittensor [7,8] | Stake-weighted validator scoring at scale | Inflation-funded commodity production, not per-task settlement |
-| Verification economics | Restaking inference [34], Proof of Sampling [35], optimistic TEE [36], Truebit [23], rollups [24], naysayer [39] | Stake, probabilistic audit, slashing, challenge periods | **Assumes re-executability**; strains under even numerical non-determinism [37,38] |
+| Verification economics | Restaking inference [34], Proof of Sampling [35], optimistic TEE [36], Truebit [23], rollups [24], naysayer [39] | Stake, probabilistic audit, slashing, challenge periods; repeated-game analysis and reputation-weighted penalties [34]; tiered attestation plus ZK spot-checks [36] | **Assumes re-executability** — dispute resolution terminates in deterministic replay [36]; reputation weights penalties, not selection, and excludes cost [34] |
 | Reputation theory | Sybil [18], cheap pseudonyms [19], EigenTrust [20] | Why identity must be priced; aggregation machinery | Scores quality, not quality per unit cost |
 
 The gap is the intersection: no system verifies non-reproducible, side-effecting agent execution,
@@ -734,6 +762,13 @@ Disclosure proceeds in three levels:
   verifiable against a commitment published *before* the dispute, a party cannot revise history
   after a challenge is filed.
 
+The motivation for tiered disclosure is not ours and we do not present it as such. [36] already
+discloses only the specific divergent state during a dispute, explicitly to protect the user's
+prompt, and criticizes full-trace reproduction approaches on precisely these privacy grounds. Our
+contribution at this layer is narrower: extending selective disclosure from a *tensor-level
+divergence point* in a deterministic computation to an *evidence subset of a multi-step trajectory*,
+where there is no divergence point to isolate because there is no second execution to diverge from.
+
 The privacy consequence is worth stating directly, since it cuts both ways. Default non-disclosure
 protects requester prompts and proprietary artifacts from validators, which is necessary for the
 system to be usable on real work. It also means routine audits verify less than a full replay
@@ -798,13 +833,23 @@ inspection-game threshold
 p*  =  (V + c_exec) / (λ·S)
 ```
 
-This is an instance of a well-studied class [21,22] and, in the staked-provider setting, of the
-analysis in [34]; we claim it as adaptation, not as result (§3.5). Three design rules follow.
+This condition belongs to the inspection-game and proof-of-stake slashing lineage [21,22], and we
+claim no part of it. [34] states the same test as its Definition 1 ("1-Round incentive
+compatibility", `cαS ≥ Δ` in its notation), likewise attributing it to existing literature rather
+than claiming it — **and then devotes itself to showing that it is insufficient.** Section 7.5
+addresses that argument, which bears directly on whether the rules below are safe to rely on. Three
+design rules follow from the one-shot condition; §7.5 then qualifies them.
+
+*Notation warning for readers of [34]:* its `α` is our `λ` (slashing fraction), while its `λ`
+denotes an exponential-weighting parameter unrelated to slashing.
 
 **Rule 1 — Stake scales with task value.** `p* ≤ 1` requires `λ·S ≥ V + c_exec`. An agent's
 accessible task value is therefore capped by its collateral: `V ≤ λ·S − c_exec`. This is the
 mechanism by which Mergit refuses to let an under-collateralized agent accept a task whose
-falsification it could profit from.
+falsification it could profit from. The principle that assurance should scale with value at risk is
+established: [36] varies its spot-check rate from zero on a trivial query to one on a high-value
+trade. We apply it to collateral rather than to sampling rate, and extend it in §10.2 to the length
+of the dispute window.
 
 **Rule 2 — Challenge relaxes the audit requirement.** With `q > 0` the required audit rate falls to
 `p* = (g/λS − q)/(1 − q)`, so a credible challenger population is economically equivalent to a
@@ -889,6 +934,63 @@ against a dollar of work, where re-execution verification would cost about a dol
 task's price. That difference is what makes outcome-contingent settlement affordable at task
 granularity rather than only for high-value contracts.
 
+### 7.5 Repeated interaction, and why the one-shot rule is not enough
+
+The analysis so far is one-shot: it asks whether falsifying *this* receipt has negative expected
+value. [34] argues that this is the wrong question for a provider who interacts with the protocol
+repeatedly, and the argument applies to us directly.
+
+Its Definition 4 identifies a class of *memoryless bounded-slashing* mechanisms, characterized by
+three properties: audit decisions are independent of history, slashing is bounded by some
+`α_max · S`, and mechanism decisions depend on history only through current stake. Its Theorem 4.2
+shows that mechanisms in this class admit profitable repeated-game deviations whenever slashing is
+partial. **The rule of §7.2 as stated satisfies all three properties, so Mergit as specified so far
+falls inside that impossibility class.** The exposure is worse than generic, because [34] reports
+the gap is largest for patient providers holding high stake relative to per-query rewards — and
+Rule 1 *mandates* a high stake-to-value ratio, placing a well-collateralized Mergit agent in
+precisely the adverse regime.
+
+We take this as a correction to the mechanism rather than a limitation to be noted in passing. Two
+responses are available.
+
+**Full slashing.** [34] confirms that `λ = 1` closes the repeated-game gap, and the illustration in
+§7.4 already assumes it. We decline to rely on this alone, for a reason specific to our setting:
+[34] observes that deployed systems retain partial slashing because false positives then destroy an
+entire stake, and our false-positive risk is *higher* than in the deterministic case, since
+adjudication rests on whether disclosed evidence substantiates `Φ` rather than on a recomputation
+that either matches or does not (§7.3). A mechanism whose safety depends on never wrongly slashing
+in full is not one we want to lean on where adjudication is judgment-laden.
+
+**History-dependent auditing.** The more promising escape is to break the memorylessness property
+itself, and the material to do so already exists in this design. §8 maintains per-agent,
+per-category Bayesian posteriors over validated success; coupling the audit rate to those posteriors
+makes audit decisions depend on history through something other than current stake, which violates
+the first and third conditions of Definition 4. Concretely, let
+
+```
+p_t(a,k) = p* · f(posterior_{a,k})
+```
+
+with `f` increasing in posterior uncertainty and in recent validated failures, and decreasing — but
+bounded strictly away from zero — over a long clean validated record. A defection becomes costly
+beyond the immediate task, because it raises the agent's own future audit rate and so the cost of
+every subsequent defection.
+
+Two cautions attach to this, and they are design constraints rather than afterthoughts. First, `f`
+must be bounded below: an agent whose audit rate approached zero on reputation alone would face
+exactly the one-shot calculation again at a lower `p`, which is the deviation [34] identifies.
+Second, the coupling runs in both directions — reputation now feeds audit scheduling while audited
+outcomes feed reputation — so `f` must escalate sharply enough on failure that the expected penalty
+from a defection exceeds the accumulated saving from a reduced audit rate. Tuning `f` is a mechanism
+design problem in its own right.
+
+We do not claim to have solved it. What we claim is narrower: the one-shot rule of §7.2 is
+insufficient under repeated interaction, the escape route runs through history-dependent auditing,
+and that route is unusually cheap for Mergit because the required posteriors are already maintained
+for routing. Establishing that a particular `f` satisfies [34]'s repeated-game incentive
+compatibility is stated as open work (§14), and until it is established the conservative deployment
+posture is `λ = 1` with the false-positive caveat above.
+
 ---
 
 ## 8. Cost-adjusted reputation
@@ -897,7 +999,16 @@ granularity rather than only for high-value contracts.
 
 Every system surveyed in §3 that scores agents scores some notion of quality: validator-assessed
 output [7,8], counterparty satisfaction [6], or verified activity against KPIs [10]. Cost appears in
-these systems only as a billing output. We argue it belongs in the trust signal itself, for a reason
+these systems only as a billing output.
+
+One precision is required, because the nearest prior art is nearer than a casual survey suggests.
+[34] does maintain a Bayesian posterior over a provider's type, and uses it to scale slashing — so
+"this literature has no reputation" would be false, and we do not say it. What it does not do is use
+that posterior to *select* a provider, nor include cost in it: reputation there weights punishment
+after the fact, within a fixed provider relationship. Our use is different in both respects. The
+posterior is a selection signal (§9), and its denominator is metered cost. The claim we defend is
+therefore specific — reputation as *verified quality per unit cost*, used for *routing* — not the
+broader and incorrect claim that reputation is unused in this literature. We argue it belongs in the trust signal itself, for a reason
 that follows directly from what a requester is buying.
 
 A requester delegating a task has a budget and an outcome predicate. Two agents that both satisfy
@@ -935,6 +1046,13 @@ so `γ = 0.95` corresponds to an effective memory of roughly twenty validated ob
 that degrades after a model change is re-rated within tens of validated tasks rather than being
 protected indefinitely by past performance. Conversely `γ = 1` recovers the undecayed case, in which
 a long record becomes an unchallengeable moat.
+
+These posteriors have two consumers rather than one. Routing samples from them (§9), and audit
+scheduling is coupled to them (§7.5) to escape the memorylessness that makes a one-shot audit rule
+vulnerable under repeated interaction. The second use is why the posterior must remain cheap to
+maintain and difficult to manipulate: it is no longer only a selection signal but part of the
+verification mechanism, so the manipulation resistance discussed in §8.7 protects deterrence and not
+merely routing quality.
 
 ### 8.3 Posterior over cost
 
@@ -1004,6 +1122,13 @@ New identities receive wide posteriors rather than zero scores, which is what ma
 (§9) principled instead of charitable: an agent with `(α, β) = (1, 1)` has an uninformative
 posterior, so Thompson sampling will occasionally draw it and generate the evidence that resolves
 it.
+
+Pricing registration is also treated formally in the staked-provider setting: [34] gives conditions
+under which abandoning an identity and respawning is unprofitable, relating registration cost to the
+discounted value of a continuing relationship and to the penalty an accumulated posterior implies.
+That result is the closest quantitative counterpart to the classical whitewashing arguments
+[18,19], and a production parameterization of Mergit's registration stake should be checked against
+it rather than set by intuition.
 
 Verified external credentials (decision 7) reduce the stake required at registration (§7.2, Rule 1).
 Whether they should also sharpen the prior is a separate question, and we answer it conservatively:
@@ -1388,6 +1513,21 @@ rather than measurements; the architecture's claim is that the overhead *can* be
 and the parameters above show what it takes — adequate collateral, a credible challenger population,
 batched commitments, and uncertainty-proportional exploration.
 
+A comparison deserves pre-empting, because our figures will otherwise look implausible. [36] reports
+roughly $0.07 per query in total verification cost from hardware-level simulation, against which our
+tenths-of-a-cent audit component appears aggressive. The figures are not measuring the same thing.
+Theirs is an end-to-end cost per inference including attestation overhead and amortized
+zero-knowledge spot-checks at a sampling rate near 0.01; ours is the marginal cost of auditing a
+receipt's evidence subset, excluding both execution and the proof machinery we do not have. Two
+further asymmetries matter: our audits read test results and artifact digests rather than
+recomputing tensor operations, which is a genuinely cheaper operation, but our task granularity is
+coarser — an agent task is a trajectory, not a single query, so per-task overhead should be compared
+against per-task value rather than per-query value. We would expect a real deployment to land
+between the two, and we regard [36]'s simulated figure as the more credible anchor precisely because
+it was simulated rather than derived. Until Mergit is measured, the honest claim is the directional
+one: auditing evidence is cheaper than reproducing work, and the gap is what funds
+outcome-contingency.
+
 ---
 
 ## 12. Security analysis
@@ -1468,6 +1608,19 @@ economic consequence *if the fiction is detected by other means* — a requester
 plainly was not done, inconsistency between a receipt and observable repository state, or an
 anomalous pattern of outcomes relative to an agent's posterior. This is detection by external
 contradiction rather than by cryptographic verification, and its coverage is uneven.
+
+**We are weaker than the deterministic case here, and the comparison deserves to be explicit rather
+than implied.** [36] argues that even an adversary who extracts a TEE signing key and forges
+attestations cannot forge the execution *trace*: a broken TEE degrades to an ordinary optimistic
+sequencer, whose invalid outputs are caught by bisection and slashed. Its stochastic
+zero-knowledge spot-checks require no TEE honesty whatsoever. That fallback is strictly stronger
+than ours — and the reason it does not transfer is the premise of this paper. Both the bisection and
+the proof-based spot-check depend on recomputing the disputed computation, which a non-reproducible
+trajectory does not permit. Our non-reproducibility argument therefore cuts both ways: it is what
+makes receipts necessary (§1.3) and equally what deprives us of the strongest available defence when
+attestation fails. We regard this as the principal cost of operating in this setting, and it raises
+the value of `k`-of-`n` redundant execution (§14) from an optional hardening to the main route by
+which high-value categories can recover a comparable guarantee.
 
 Three structural mitigations are therefore worth stating. Receipts bind to *externally observable*
 state wherever possible — artifact hashes a requester can recompute, on-chain transaction hashes,
@@ -1556,6 +1709,19 @@ most tasks are not audited at equilibrium rates, evidence accrues slowly. Early 
 life, posteriors are wide, routing is mostly exploration, and the subsidy of §9.5 is at its most
 expensive. The design is therefore weakest exactly when a new deployment most needs it to work.
 
+**Repeated-game incentive compatibility is unproven.** §7.5 concedes that the one-shot audit rule
+places Mergit inside [34]'s memoryless bounded-slashing impossibility class, and that Rule 1's high
+stake-to-value ratio puts a well-collateralized agent in the adverse regime. We propose
+history-dependent auditing as the escape and argue it is cheap for us, but we have not shown that
+any particular coupling `f` satisfies repeated-game incentive compatibility. Until that is done, the
+safe posture is full slashing — which carries its own false-positive exposure, worse here than in
+the deterministic case because adjudication is evidence-based.
+
+**Our TEE fallback is weaker than the deterministic case's.** §12.5: a broken TEE in [36]'s design
+degrades to an ordinary optimistic sequencer whose bad outputs are caught by replay, and its
+zero-knowledge spot-checks need no TEE honesty at all. Neither remedy transfers to non-reproducible
+work. This is the principal cost of our setting, not a detail.
+
 **No regret guarantee.** §9.6 declines to claim one: decay makes rewards non-stationary, the arm set
 is open, the objective is a ratio, and validated feedback is sparse. The routing policy is justified
 structurally, not optimally.
@@ -1600,8 +1766,18 @@ assert infeasibility without a citation we have yet to select (see `research.md`
 question is which *sub-steps* of a trajectory are cheap enough to prove today, since partial proof
 coverage composes with attestation for the remainder.
 
+**Repeated-game incentive compatibility for history-dependent auditing.** The most pressing
+theoretical gap, from §7.5. Required: a coupling `f` from reputation posteriors to audit rates,
+bounded away from zero and escalating sharply on failure, shown to satisfy [34]'s repeated-game
+criterion while keeping expected audit cost near the one-shot optimum. Because the posteriors exist
+already for routing, this is the cheapest substantive strengthening available to the design, and it
+would also make verification and reputation a single coupled mechanism rather than two layers.
+
 **Regret analysis under decay, open arm sets, and sparse validated feedback.** The open theoretical
 problem from §9.6. Discounted and sliding-window bandit analyses are the natural starting frame.
+Note that this interacts with the item above: if audit rates become history-dependent, then
+validated feedback arrives at a rate the policy itself influences, and exploration and audit
+scheduling can no longer be analyzed independently.
 
 **Predicate synthesis and strengthening.** Given §12.6's assessment that weak predicates are the
 likeliest practical failure, automatically generating or strengthening `Φ` from a task description —
@@ -1752,13 +1928,14 @@ see https://github.com/pleasedodisturb/awesome-llm-token-optimization
 [33] *awesome-erc8004* — ERC-8004 ecosystem resource index.
 https://github.com/sudeepb02/awesome-erc8004
 
-[34] *Repeated-Game Security for Restaking-Based Verifiable Inference.* arXiv:2608.09055.
+[34] Shang, Z., Yu, Y. and Chen, K. *Repeated-Game Security for Restaking-Based Verifiable
+Inference.* arXiv:2608.09055, August 2026.
 
 [35] *Proof of Sampling: A Nash Equilibrium-Based Verification Protocol for Decentralized Systems.*
 arXiv:2405.00295.
 
-[36] *Optimistic TEE-Rollups: A Hybrid Architecture for Scalable and Verifiable Computation.*
-arXiv:2512.20176.
+[36] Chan, Ding, Chen, Wu, Zhang and Tian. *Optimistic TEE-Rollups: A Hybrid Architecture for
+Scalable and Verifiable Generative AI Inference on Blockchain.* arXiv:2512.20176, December 2025.
 
 [37] *Nondeterminism-Aware Optimistic Verification for Floating-Point Neural Networks.*
 arXiv:2510.16028.

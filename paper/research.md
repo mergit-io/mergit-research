@@ -248,8 +248,49 @@ Searched specifically to test whether design-brief §5.3's "stake substitutes fo
 compute" is already known. **It substantially is.** Recorded here in full because it forces a
 reframing of the paper's novelty claims.
 
-**[34] "Repeated-Game Security for Restaking-Based Verifiable Inference."** arXiv 2608.09055.
-`VERIFIED`
+**[34] Shang, Z., Yu, Y., Chen, K. "Repeated-Game Security for Restaking-Based Verifiable
+Inference."** arXiv 2608.09055, 2026-08-10. `READ IN FULL 2026-10-09`
+
+**Full-read corrections to the summary-based notes below — all applied to the draft:**
+- **Its one-shot test is not its contribution.** Definition 1 ("1-Round IC", `cαS ≥ Δ`) is
+  structurally our `p·λS > g`, but [34] attributes it to existing slashing and inspection-game
+  literature. Our earlier framing deferred to [34] for something it does not claim. Correct
+  attribution: [21,22], with [34] stating it as a baseline.
+- **Its actual thesis refutes our foundation.** Definition 4 defines *memoryless bounded-slashing*
+  mechanisms (audits independent of history; slashing ≤ α_max·S; decisions depend on history only
+  via current stake) and Theorem 4.2 shows these admit profitable repeated-game deviations when
+  slashing is partial. **Our §7.2 rule satisfies all three conditions.** The gap is largest for
+  patient providers with high stake relative to per-query rewards — and our Rule 1 mandates a high
+  stake-to-value ratio, i.e. the adverse regime. Addressed in new §7.5 (history-dependent auditing
+  coupled to §8 posteriors; `λ = 1` as conservative fallback). **Not yet proven adequate — listed in
+  §13 and §14.**
+- **The substitution is mislabeled in our earlier notes.** Appendix 0.D, Table 1: at δ_target = 0.95,
+  raising signal gain from β = 0 to β = 0.5 cuts the required baseline audit rate from 0.370 to
+  0.145 (≈2.6× saving). That is *signal responsiveness ↔ audit budget*, **not stake ↔ audit rate**.
+  Their framing: "signal responsiveness substitutes for baseline audit budget, and history
+  dependence is what makes the stake level feasible in the first place." Linear-cost claim
+  confirmed.
+- **It does build reputation.** §5.3 "Bayesian Reputation-Weighted Slashing": two-type model,
+  posterior ρ_t over provider type, robust worst-case variant, penalty `(α₀ + α₁ρ̄_t)S_t`. So
+  "deterrence only, no reputation" was false and is now removed from §3.5, §3.7, §8.1 and the
+  whitepaper. What survives: reputation there weights *penalties*, not *selection*, and excludes
+  cost.
+- **It formally handles whitewashing.** Lemma 4: respawning is unprofitable iff
+  `π₀ > c_reg(1 − δ(1 − c₀p̲)) / (α₁c₀S)`. Cited in §8.6 alongside [18,19]; a production
+  registration-stake parameterization should be checked against it.
+- **Scope confirms our differentiation, strongly.** §3.1 is a single query, verifier re-executes with
+  probability c, binary action: contracted model vs cheaper substitute. No tool use, side effects,
+  state mutation, or multi-step trajectories anywhere.
+- **One point helps us:** Remark 3 notes re-execution audits are noisy — floating-point
+  non-determinism and hardware heterogeneity can cause false disagreement between honest parties.
+  Cited in §3.5: re-execution is already an imperfect oracle for pure inference.
+- **Our `q > g/(λS)` threshold is not theirs.** Nearest analogue is their Arbitrum discussion ("one
+  correct challenger deters false assertions because a caught cheater loses its bond in full"),
+  which relies on full confiscation. Our threshold stands as original; lineage acknowledged.
+- **Notation collision:** their `α` is our `λ` (slashing fraction); their `λ` is an
+  exponential-weighting parameter. Warned in §7.2.
+
+*Original summary-based notes retained below for provenance:*
 → https://arxiv.org/html/2608.09055
 Setup is near-identical in structure to our §5: a provider posts stake and privately chooses
 between running the contracted model or a cheaper substitute that saves computation cost; a
@@ -268,12 +309,55 @@ Systems."** arXiv 2405.00295. `VERIFIED`
 Sampling-based verification protocol with Nash equilibrium analysis.
 *Use:* prior art for sampled-audit verification as an equilibrium design.
 
-**[36] "Optimistic TEE-Rollups: A Hybrid Architecture for Scalable and Verifiable [computation]."**
-arXiv 2512.20176. `VERIFIED`
-TEE attestation combined with optimistic challenge — architecturally the closest published analogue
-to Mergit's decision-15 trust anchor plus challenge window.
-*Use:* **must be cited and differentiated** in §6 and §12. Our contribution cannot be "TEE plus
-optimistic challenge," because that combination is published.
+**[36] Chan, Ding, Chen, Wu, Zhang, Tian. "Optimistic TEE-Rollups: A Hybrid Architecture for
+Scalable and Verifiable Generative AI Inference on Blockchain."** arXiv 2512.20176, 2025-12-23.
+`READ IN FULL 2026-10-09`
+
+**Title correction:** our earlier citation said "...Verifiable Computation." The real title says
+**Generative AI Inference on Blockchain**, which also helps us — the scope limitation is on the
+title page. Fixed in §16.
+
+**Full-read findings — all applied to the draft:**
+- **Our novelty disclaimer is accurate.** Three tiers: Tier 1 provisional finality from a DCAP
+  attestation quote over MRENCLAVE; Tier 2 fraud-proof "Fisherman Game"; Tier 3 **VRF-triggered
+  stochastic ZK spot-checks at ρ ≈ 0.01**, which our earlier draft did not mention and §3.5 now
+  does.
+- **Our differentiation holds and was understated.** Dispute resolution is deterministic replay by
+  construction: a Fisherman recomputes locally "using bit-wise deterministic settings", and
+  divergence triggers interactive bisection over transformer layers, then over matrix
+  multiplications, until a single disputed operation executes on-chain. Bit-wise determinism is a
+  stated precondition. No treatment of side effects, irreversibility, or non-restorable state. Now
+  quoted in §3.5.
+- **Tiered disclosure is theirs, not ours.** §3.4.2 reveals only the divergent state during a
+  dispute, explicitly to protect the user's prompt, and criticizes full-trace reproduction on
+  privacy grounds — the same motivation as our §6.3. **§6.3 now credits them** and narrows our claim
+  to extending selective disclosure from a tensor-level divergence point to an evidence subset of a
+  trajectory where no divergence point exists.
+- **Value-scaled assurance is theirs.** §4.3.1 varies ρ from 0 for a $0.01 query to 1 for a $1000
+  trade. Cited in §7.2 as precedent for Rule 1 and for category-dependent dispute windows.
+- **Their TEE-compromise fallback is strictly stronger than ours and does not transfer.** §4.2.2:
+  even an adversary extracting the TEE signing key "cannot forge the execution trace"; a broken TEE
+  "behaves like a standard OpML sequencer" and bad outputs are bisected and slashed. Their ZK
+  spot-checks need no TEE honesty at all. Both remedies require determinism. **§12.5 now concedes
+  this explicitly** rather than implying parity, and it raises the priority of k-of-n redundant
+  execution for us.
+- **PoEA is not our receipt.** It binds *model identity* (MRENCLAVE ∈ registry) to output — "was
+  this the model you paid for" — via a flat tuple (y, σ_TEE, H(·)) on a DA layer, with "execution
+  trace" meaning internal tensor computation. No hash-chaining, no sequence numbers, no evidence
+  subsets. Our §6.2 structure stands as distinct.
+- **They cite [34]'s Theorem 2** for their deterrence condition (eq. 7, `p_detect·S > G`),
+  independently confirming that the one-shot form is shared prior art rather than anyone's
+  contribution.
+- **Cost-comparison risk.** They report ≈ **$0.07/query** end-to-end from H100 simulation (vs opML
+  $0.05, ZKML $50+), and a gas table (≈40k gas signature check vs ≈350k for ZKML). Our §11.5
+  tenths-of-a-cent audit figure reads as aggressive against that. **§11.5 now pre-empts the
+  comparison**, distinguishing marginal evidence-audit cost from end-to-end per-query cost and
+  conceding their simulated figure is the more credible anchor.
+- They also assume ≥ 1 honest watchtower — the same liveness dependency as our `q`.
+
+*Original summary-based note retained for provenance:* TEE attestation combined with optimistic
+challenge, architecturally the closest published analogue to Mergit's trust anchor plus challenge
+window; must be cited and differentiated in §6 and §12.
 
 **[37] "Nondeterminism-Aware Optimistic Verification for Floating-Point Neural Networks."**
 arXiv 2510.16028. `VERIFIED`
@@ -325,6 +409,16 @@ this literature will otherwise reject on prior art alone.
 - [ ] Confirm all `TO VERIFY` venues/years in §D and §E.
 - [x] **CLOSED (2026-10-09, negative result).** Checked whether existing work formalizes *stake
       substituting for verification compute*. It does — see §F2 [34]. The result is prior art;
-      novelty claims reframed accordingly. Read [34] and [36] in full before drafting §7.
+      novelty claims reframed accordingly.
+- [x] **CLOSED (2026-10-09).** [34] and [36] both read in full; corrections applied to §§3.5, 3.7,
+      6.3, 7.2, 8.1, 8.2, 8.6, 11.5, 12.5, 13, 14, 16 and to the whitepaper. Two material outcomes:
+      a wrong title for [36], and the discovery that our §7.2 rule falls inside [34]'s
+      memoryless-bounded-slashing impossibility class (new §7.5).
+- [ ] **NEW, HIGH PRIORITY.** Design and justify the audit-rate coupling `f(posterior) → p` from
+      §7.5, and check it against [34]'s repeated-game criterion. This is the open mechanism-design
+      problem the full read created. Until resolved, §13 carries it as a stated limitation and the
+      conservative posture is `λ = 1`.
+- [ ] Re-check whether anything in [34]'s §5.3 (reputation-weighted slashing) or Lemma 4
+      (whitewashing) should further constrain our registration-stake parameterization in §8.6.
 - [ ] Read [14] (SoK on agentic commerce security) in full before drafting §12, to position
       against its taxonomy rather than duplicate it.
