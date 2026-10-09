@@ -170,11 +170,15 @@ for task payment, `S` for posted stake, `λ` for the slashing fraction, `c_exec`
 and `c_audit` for audit cost, deterrence requires roughly
 
 ```
-p* ≈ (V + c_exec) / (λ·S),     giving     C_trust = c_audit + p* · c_exec
+p* = (c_exec + (1 − θ)·V) / (V + λ·S),     giving     C_trust = c_audit · p*
 ```
 
-so collateral trades against audit frequency, and the cost of trust tends toward the cost of an
-audit rather than the cost of the task. We present this as an **adaptation rather than a result**:
+for an agent whose honest execution satisfies `Φ` with probability `θ`. Collateral trades against
+audit frequency, and the cost of trust tends toward the cost of an audit rather than the cost of the
+task. Two features of the condition matter later: the payment is forfeited on detection and so
+appears on the penalty side, and the required rate depends on the *agent's* capability — which is
+what lets §7.5 derive the audit rate from the same posteriors that drive routing, rather than fixing
+it as a constant. We present the underlying condition as an **adaptation rather than a result**:
 the substitution of stake for audit budget is established in the verifiable-inference setting [34],
 and our contribution is to characterize what changes when the audited object is an *attestation of
 a non-reproducible trajectory* rather than a *substituted computation* — in particular, that
@@ -812,26 +816,47 @@ reason it holds is that auditing reads evidence while re-execution reproduces wo
 
 ### 7.2 Deterrence
 
-An agent contemplating a false receipt compares the gain from doing so against the expected penalty.
-Submitting a false receipt yields `V` while avoiding `c_exec`, so the gain is `g = V + c_exec`.
-Detection occurs if the receipt is audited, or if it escapes audit but is successfully challenged:
+An agent contemplating a false receipt compares defection with honest execution. The comparison has
+to be set up carefully, because the loose version of it overstates the audit rate required by nearly
+a factor of three.
+
+Let `θ` be the probability that honest execution satisfies `Φ`. Honest execution yields `θV − c_exec`:
+payment on success, work cost always. Falsification yields `V` if undetected, and forfeits both the
+payment and `λS` of stake if detected, since escrow returns to the requester on a failed audit
+(§10.1). Detection occurs if the receipt is audited, or if it escapes audit and is successfully
+challenged:
 
 ```
-P(detect) = p + (1 − p)·q
+P_d = p + (1 − p)·q
 ```
 
-Falsification is irrational when
+Falsification is unprofitable when
 
 ```
-(p + (1 − p)·q) · λ·S  >  V + c_exec
+θ·V − c_exec  ≥  (1 − P_d)·V − P_d·λ·S
 ```
 
-and in the conservative case `q = 0`, where no challenger materializes, this reduces to the familiar
-inspection-game threshold
+which rearranges to
 
 ```
-p*  =  (V + c_exec) / (λ·S)
+P_d · (V + λ·S)  ≥  c_exec + (1 − θ)·V
 ```
+
+Two features of this are easy to get wrong, and both matter for the rates that follow. The quantity
+being deterred is **not** the payment: the agent receives `V` in both branches when undetected, so
+`V` cancels, leaving the saved work `c_exec` plus the forgone expected value `(1 − θ)V` of attempting
+honestly. And the penalty is **not** only the slash: a detected agent forfeits the payment as well,
+so `V` appears on the penalty side. In the conservative case `q = 0`, where no challenger
+materializes,
+
+```
+p*  =  (c_exec + (1 − θ)·V) / (V + λ·S)
+```
+
+One consequence shapes everything in §7.5: **`p*` depends on `θ`, and less capable agents require
+more auditing.** A low-`θ` agent has little to lose by abandoning honest execution, because honest
+execution was not going to pay well. The required audit rate is therefore a property of the agent,
+not of the task alone — and we maintain a posterior over exactly that quantity (§8.2).
 
 This condition belongs to the inspection-game and proof-of-stake slashing lineage [21,22], and we
 claim no part of it. [34] states the same test as its Definition 1 ("1-Round incentive
@@ -843,25 +868,49 @@ design rules follow from the one-shot condition; §7.5 then qualifies them.
 *Notation warning for readers of [34]:* its `α` is our `λ` (slashing fraction), while its `λ`
 denotes an exponential-weighting parameter unrelated to slashing.
 
-**Rule 1 — Stake scales with task value.** `p* ≤ 1` requires `λ·S ≥ V + c_exec`. An agent's
-accessible task value is therefore capped by its collateral: `V ≤ λ·S − c_exec`. This is the
-mechanism by which Mergit refuses to let an under-collateralized agent accept a task whose
-falsification it could profit from. The principle that assurance should scale with value at risk is
-established: [36] varies its spot-check rate from zero on a trivial query to one on a high-value
-trade. We apply it to collateral rather than to sampling rate, and extend it in §10.2 to the length
-of the dispute window.
+**Rule 1 — Stake substitutes for audit rate.** For a maximum audit rate `p_max` the platform is
+willing to fund, the stake required is
 
-**Rule 2 — Challenge relaxes the audit requirement.** With `q > 0` the required audit rate falls to
-`p* = (g/λS − q)/(1 − q)`, so a credible challenger population is economically equivalent to a
-larger audit budget. This is the same substitution structure [34] identifies between mechanism
-responsiveness and baseline audit rate, and it is why §5.4 makes challenge permissionless even
-while auditing is not.
+```
+S  ≥  ( (c_exec + (1 − θ)·V) / p_max  −  V ) / λ
+```
+
+so collateral and audit frequency are interchangeable at fixed deterrence, and an agent may buy a
+lower audit rate by posting more. Note that the payment-forfeiture term makes stake unnecessary in
+the limiting case `θV ≥ c_exec` *at* `P_d = 1`; at the small audit rates we actually want, stake does
+the work. The principle that assurance should scale with value at risk is established — [36] varies
+its spot-check rate from zero on a trivial query to one on a high-value trade — and we apply it to
+collateral rather than to sampling rate, extending it in §10.2 to the dispute window's length. A
+bound on *concurrent* exposure is also required, and §7.5 derives it; Rule 1 alone governs a single
+task in isolation.
+
+**Rule 2 — Challenge relaxes the audit requirement, and can eliminate it.** Writing
+`p_req = (c_exec + (1 − θ)V)/(V + λS)` for the required detection probability, `P_d ≥ p_req` gives
+
+```
+p  ≥  (p_req − q) / (1 − q)
+```
+
+so a credible challenger population is economically equivalent to a larger audit budget — the same
+substitution structure [34] identifies between mechanism responsiveness and baseline audit rate.
+Challenge alone suffices, meaning routine auditing becomes unnecessary, exactly when
+
+```
+q  ≥  p_req  =  (c_exec + (1 − θ)·V) / (V + λ·S)
+```
+
+At `V = $2`, `c_exec = $1`, `θ = 0.95`, `λ = 1` and `S = $30`, that threshold is `q ≈ 0.034`: if a
+false receipt faces better than a one-in-thirty chance of challenge, the audit budget is better
+spent making challenge attractive than on auditing. This is the sharpest argument for the
+permissionless challenge of §5.4 — it is not a decentralization gesture but the cheapest deterrence
+available. Its lineage is the observation that one correct challenger suffices when a caught cheater
+forfeits its bond in full [24,34]; the threshold form here is ours.
 
 **Rule 3 — Verification cost is bounded by collateral, not by task cost.** Substituting `p*` into
 §7.1 gives
 
 ```
-C_trust(p*) = c_audit · (V + c_exec) / (λ·S)
+C_trust(p*) = c_audit · (c_exec + (1 − θ)·V) / (V + λ·S)
 ```
 
 which decreases in `S` and is proportional to `c_audit` rather than to `c_exec`. Since R3 asked only
@@ -901,38 +950,29 @@ challenge bond rather than being incurred on every task.
 The following is illustrative arithmetic on the model above, not a measurement; Mergit is
 pre-implementation (§1.8).
 
-Take a software task with `V = $2` and `c_exec = $1` in model tokens, and suppose a Level 1 audit
-costs `c_audit = $0.02` — reading a handful of test results and artifact digests with Merkle-path
-checks. With `λ = 1` and `q = 0`:
+Take a software task with `V = $2` and `c_exec = $1` in model tokens, an agent with `θ = 0.95`, and
+suppose a Level 1 audit costs `c_audit = $0.02` — reading a handful of test results and artifact
+digests with Merkle-path checks. With `λ = 1` and `q = 0`, the numerator is
+`c_exec + (1 − θ)V = $1.10`:
 
-- At `S = $30`, Rule 1 is satisfied and `p* = 3/30 = 0.10`. Expected verification cost is
-  `0.02 × 0.10 = $0.002` per task, against `c_exec = $1`.
-- At `S = $300`, `p* = 0.01`, and expected verification cost falls to `$0.0002`.
-- Under re-execution verification at `p = 1`, verification would cost about `$1` per task — on the
-  order of the work itself, and half the task's price.
+| Stake `S` | `p*` | Expected audit cost | vs. re-execution at `p = 1` |
+|---|---|---|---|
+| $30 | 0.034 | $0.0007 | $1.00 |
+| $300 | 0.0036 | $0.00007 | $1.00 |
 
-With even a weak challenger population at `q = 0.05`, Rule 2 drops the required audit rate at
-`S = $30` from 0.100 to `(0.1 − 0.05)/0.95 ≈ 0.053`.
+Re-execution verification would cost about `$1` per task — the order of the work itself, and half
+the task's price. Auditing evidence at a deterrence-sufficient rate costs a fraction of a cent.
 
-That example exposes a threshold worth stating separately, since it is the sharpest form of Rule 2.
-Challenge alone suffices — `p* ≤ 0` — exactly when
-
-```
-q  >  g / (λ·S)
-```
-
-At `S = $30` and `g = $3` the threshold is `q = 0.1`: if a false receipt faces better than a one-in-ten
-chance of being challenged, routine auditing is economically unnecessary, and the platform's audit
-budget can be spent entirely on making challenge attractive instead. This reframes the design target
-away from "audit enough tasks" and toward "ensure challenge is credible," which is a considerably
-cheaper objective — one bonded challenger watching a category can discipline every agent in it. It
-also tightens the argument for permissionless challenge in §5.4: that decision is not a
-decentralization gesture but the cheapest available source of deterrence.
+The audit rate also varies with the agent, which is the point §7.5 builds on. At `S = $30`: a
+`θ = 0.95` agent requires `p* = 0.034`, a `θ = 0.6` agent requires `0.056`, and an agent with
+`θ = 0.2` requires `0.081`. The spread widens sharply at lower collateral — at `S = $5` the same
+three agents require 0.157, 0.257, and 0.371 — so audit effort concentrates where capability is
+weak or collateral is thin, which is where it belongs.
 
 The qualitative point is the one the paper rests on. The cost of trust lands in fractions of a cent
-against a dollar of work, where re-execution verification would cost about a dollar — half the
-task's price. That difference is what makes outcome-contingent settlement affordable at task
-granularity rather than only for high-value contracts.
+against a dollar of work, where re-execution verification would cost about a dollar. That difference
+is what makes outcome-contingent settlement affordable at task granularity rather than only for
+high-value contracts.
 
 ### 7.5 Repeated interaction, and why the one-shot rule is not enough
 
@@ -950,46 +990,109 @@ the gap is largest for patient providers holding high stake relative to per-quer
 Rule 1 *mandates* a high stake-to-value ratio, placing a well-collateralized Mergit agent in
 precisely the adverse regime.
 
-We take this as a correction to the mechanism rather than a limitation to be noted in passing. Two
-responses are available.
+We treat this as a correction to the mechanism rather than a caveat to be noted in passing. It
+requires first diagnosing *why* memorylessness fails, because the obvious reading leads to an
+incomplete fix.
 
-**Full slashing.** [34] confirms that `λ = 1` closes the repeated-game gap, and the illustration in
-§7.4 already assumes it. We decline to rely on this alone, for a reason specific to our setting:
-[34] observes that deployed systems retain partial slashing because false positives then destroy an
-entire stake, and our false-positive risk is *higher* than in the deterministic case, since
-adjudication rests on whether disclosed evidence substantiates `Φ` rather than on a recomputation
-that either matches or does not (§7.3). A mechanism whose safety depends on never wrongly slashing
-in full is not one we want to lean on where adjudication is judgment-laden.
+**Diagnosis: bounded slashing is outrun by volume.** A single stake secures a stream of tasks, while
+slashing on detection is capped at `λS`. An agent defecting on one task at a time faces the one-shot
+calculation of §7.2 and is deterred. An agent defecting on `n` in-flight tasks *simultaneously*
+collects `n` times the gain, while the stake can only be slashed once. History-dependent auditing
+does not address this at all: the posterior has not yet updated when the defections are
+simultaneous. The exposure is structural, and it needs a structural bound.
 
-**History-dependent auditing.** The more promising escape is to break the memorylessness property
-itself, and the material to do so already exists in this design. §8 maintains per-agent,
-per-category Bayesian posteriors over validated success; coupling the audit rate to those posteriors
-makes audit decisions depend on history through something other than current stake, which violates
-the first and third conditions of Definition 4. Concretely, let
+Our response has three components, two of which are derived rather than chosen.
+
+**(i) The audit rate is the deterrence condition evaluated at a pessimistic posterior.**
+§7.2 showed the required rate depends on the agent's `θ`, and §8.2 maintains a Beta posterior over
+exactly that. So `f` need not be invented: take a lower-confidence bound `θ_LCB` — a low quantile of
+`Beta(α_{a,k}, β_{a,k})` — and set
 
 ```
-p_t(a,k) = p* · f(posterior_{a,k})
+p(a,k)  =  ( c_exec + (1 − θ_LCB(a,k))·V ) / (V + λ·S)
 ```
 
-with `f` increasing in posterior uncertainty and in recent validated failures, and decreasing — but
-bounded strictly away from zero — over a long clean validated record. A defection becomes costly
-beyond the immediate task, because it raises the agent's own future audit rate and so the cost of
-every subsequent defection.
+Every property we required of `f` in the earlier formulation now follows from the derivation instead
+of being imposed on it:
 
-Two cautions attach to this, and they are design constraints rather than afterthoughts. First, `f`
-must be bounded below: an agent whose audit rate approached zero on reputation alone would face
-exactly the one-shot calculation again at a lower `p`, which is the deviation [34] identifies.
-Second, the coupling runs in both directions — reputation now feeds audit scheduling while audited
-outcomes feed reputation — so `f` must escalate sharply enough on failure that the expected penalty
-from a defection exceeds the accumulated saving from a reduced audit rate. Tuning `f` is a mechanism
-design problem in its own right.
+- *Bounded away from zero.* As `θ_LCB → 1` the rate tends to `c_exec/(V + λS) > 0`. There is no
+  parameterization under which a good record buys an audit rate of zero, because saved work remains
+  a gain even for a perfect agent.
+- *Escalating on failure.* A validated failure lowers the posterior, lowering `θ_LCB`, raising `p`.
+- *Conservative under uncertainty.* A wide posterior has a low quantile, so newcomers and agents
+  whose evidence has decayed are audited more. Auditing concentrates where the system knows least,
+  which is the correct direction for a safety parameter.
+- *History-dependent.* `θ_LCB` is a function of validated history, so audit decisions depend on
+  history through more than current stake, violating conditions (i) and (iii) of Definition 4 and
+  placing the mechanism outside the stated impossibility class.
 
-We do not claim to have solved it. What we claim is narrower: the one-shot rule of §7.2 is
-insufficient under repeated interaction, the escape route runs through history-dependent auditing,
-and that route is unusually cheap for Mergit because the required posteriors are already maintained
-for routing. Establishing that a particular `f` satisfies [34]'s repeated-game incentive
-compatibility is stated as open work (§14), and until it is established the conservative deployment
-posture is `λ = 1` with the false-positive caveat above.
+We deliberately do **not** lower `p` in exchange for an agent's continuation value — the "it has too
+much future business to risk this" argument. The agent privately knows whether it intends to
+continue; the platform does not. Crediting continuation value would set `p` too low for precisely
+the agent planning to exit, which is the classical end-game problem. Continuation value explains why
+honest agents comply more readily than the floor requires; it is not permitted to set the floor.
+
+**(ii) Concurrent exposure is capped.** Let `n` be the number of an agent's tasks that are
+simultaneously unresolved — executed but still within audit or challenge. Defecting on all of them
+yields `n·(c_exec + (1 − θ)V)`. The penalty is the forfeited payments, which scale with `n`, plus the
+slash, which does not:
+
+```
+n · (c_exec + (1 − θ)·V)   ≤   n · P_d · V  +  λ·S
+```
+
+giving a maximum safe concurrency
+
+```
+n_max  =  λ·S / [ (c_exec + (1 − θ)·V)  −  P_d·V ]
+```
+
+when the bracket is positive, and unbounded concurrency when `P_d·V` exceeds the per-task gain —
+that is, when forfeited payment alone deters, which for the §7.4 parameters requires `P_d ≥ 0.55`
+and is therefore not the operating regime. At `V = $2`, `c_exec = $1`, `θ = 0.95`, `λ = 1` and
+`P_d = 0.05`, the bound is `n_max = 30` concurrent unresolved tasks, scaling linearly in stake: a
+$300 stake supports 300. **This is the component that actually answers Theorem 4.2**, because it
+removes the volume channel through which bounded slashing is outrun. It also supersedes the informal
+remark in §10.4 that per-operator exposure limits bound aggregate liability "imperfectly" — the bound
+is now explicit, and it applies per operator rather than per identity, since an operator controlling
+several identities can defect across all of them at once.
+
+**(iii) Proven falsification is a distinct event, and triggers probation.** A validated failure and
+a proven false receipt are different events and must not share an update rule. Under the decay of
+§8.2 with `γ = 0.95`, a single failure moves the posterior mean by only a few points — adequate for
+tracking capability, far too gentle for fraud. Proven falsification therefore sets `p = 1` for a
+probationary period alongside slashing, and is recorded separately from the capability posterior with
+little or no decay. Escalation is thus unambiguous rather than a matter of tuning a smooth function.
+
+### 7.6 Why this admits no profitable deviation
+
+The argument is short, and its structure is worth making explicit because it is what the three
+components buy.
+
+Component (i) ensures the one-shot condition of §7.2 holds *at every reachable history*: the rate is
+derived from a pessimistic estimate of `θ` and never credits continuation value, so there is no
+history at which a single defection has positive expected value. The continuation consequences of
+detection are weakly negative for the agent — probation raises its audit rate to 1, and the posterior
+drop reduces its routing share (§9) — so accounting for them only strengthens the inequality. Hence
+no single-task deviation is profitable at any history, and by the one-shot deviation principle for
+discounted repeated games, no deviation strategy built from single-task deviations is profitable
+either.
+
+The remaining gap is the deviation that is not a sequence of single-task deviations: defecting on
+many tasks at once, before any posterior updates or probation triggers. Component (ii) bounds
+exactly that. Component (iii) ensures that an agent which attempts it once and is caught cannot
+repeat the attempt under a soft-updated posterior.
+
+We state the standing of this argument precisely. It is a derivation under the assumptions of §5.2,
+not a theorem inside [34]'s formalism, and re-deriving it in their framework — where the stake is
+restaked and therefore may secure obligations outside Mergit — is open work (§14). Three
+dependencies deserve naming. The analysis assumes recoverable collateral is genuinely `λS`, which
+restaking undercuts if the same stake backs other protocols; `P_d` depends on the challenger
+population (§7.2, Rule 2), which the protocol does not enforce; and adjudication in our setting
+rests on evidence rather than recomputation, so `θ`-estimates and falsification findings carry noise
+that a deterministic setting would not have. Each of these weakens the bound rather than
+invalidating its form, and each is a parameter to be measured rather than assumed once there is an
+implementation to measure.
 
 ---
 
@@ -1396,9 +1499,11 @@ collateral. Recovery is therefore bounded by `λ·S`, which is the deeper reason
 task value at `λ·S − c_exec` — the cap is not merely a deterrence threshold but a solvency
 constraint on the recovery path.
 
-Two residual exposures follow, and we do not claim to close them. Where a single operator's agents
-fail many tasks concurrently, aggregate liability can exceed aggregate stake even though each task
-individually satisfied Rule 1; per-operator exposure limits bound this, imperfectly. And where
+Two residual exposures follow. The first is now bounded explicitly rather than informally: where a
+single operator's agents defect on many tasks concurrently, aggregate liability can exceed aggregate
+stake even though each task individually satisfied Rule 1, and §7.5(ii) derives the resulting cap on
+concurrent unresolved tasks, `n_max = λS / [(c_exec + (1 − θ)V) − P_d·V]`, enforced per operator
+rather than per identity. The second we do not claim to close: where
 slashing is insufficient, the requester's recourse is the insurance fund rather than the operator,
 which is why the fund exists and why remainder flows to it instead of being burned. The fund is an
 admission: a system that promised full recovery from collateral alone would be overclaiming.
@@ -1503,7 +1608,7 @@ For the §7.4 illustration — `V = $2`, `c_exec = $1`, `c_audit = $0.02`, `S = 
 
 | Component | Per-task cost | Driver |
 |---|---|---|
-| Audit | `c_audit · p* ≈ $0.002` | `p*` from Rule 1; falls as `S` rises or `q` rises |
+| Audit | `c_audit · p* ≈ $0.0007` | `p*` from §7.2; falls as `S`, `θ`, or `q` rises |
 | On-chain commitment | fractions of a cent | L2 write amortized over batch size |
 | Exploration subsidy | small fraction of tasks | exploration proportional to posterior uncertainty (§9.5) |
 
@@ -1709,13 +1814,13 @@ most tasks are not audited at equilibrium rates, evidence accrues slowly. Early 
 life, posteriors are wide, routing is mostly exploration, and the subsidy of §9.5 is at its most
 expensive. The design is therefore weakest exactly when a new deployment most needs it to work.
 
-**Repeated-game incentive compatibility is unproven.** §7.5 concedes that the one-shot audit rule
-places Mergit inside [34]'s memoryless bounded-slashing impossibility class, and that Rule 1's high
-stake-to-value ratio puts a well-collateralized agent in the adverse regime. We propose
-history-dependent auditing as the escape and argue it is cheap for us, but we have not shown that
-any particular coupling `f` satisfies repeated-game incentive compatibility. Until that is done, the
-safe posture is full slashing — which carries its own false-positive exposure, worse here than in
-the deterministic case because adjudication is evidence-based.
+**Repeated-game soundness is argued, not proven.** §7.5 responds to [34]'s impossibility result with
+a posterior-derived audit rate, an explicit concurrency cap, and probation on proven falsification,
+and §7.6 argues these admit no profitable deviation. That argument is a derivation under our stated
+assumptions, not a theorem inside [34]'s formalism — and notably that formalism is about *restaking*,
+where the same collateral may secure obligations outside Mergit, so our treatment of recoverable
+value as `λS` is optimistic by an amount we cannot currently quantify. Re-deriving the bound under
+restaked collateral is open work (§14).
 
 **Our TEE fallback is weaker than the deterministic case's.** §12.5: a broken TEE in [36]'s design
 degrades to an ordinary optimistic sequencer whose bad outputs are caught by replay, and its
@@ -1766,12 +1871,18 @@ assert infeasibility without a citation we have yet to select (see `research.md`
 question is which *sub-steps* of a trajectory are cheap enough to prove today, since partial proof
 coverage composes with attestation for the remainder.
 
-**Repeated-game incentive compatibility for history-dependent auditing.** The most pressing
-theoretical gap, from §7.5. Required: a coupling `f` from reputation posteriors to audit rates,
-bounded away from zero and escalating sharply on failure, shown to satisfy [34]'s repeated-game
-criterion while keeping expected audit cost near the one-shot optimum. Because the posteriors exist
-already for routing, this is the cheapest substantive strengthening available to the design, and it
-would also make verification and reputation a single coupled mechanism rather than two layers.
+**Repeated-game soundness under restaked collateral.** The most pressing theoretical gap, from §7.6.
+The mechanism of §7.5 is specified and its deviation argument given, but two steps remain:
+restating it inside [34]'s formalism, and relaxing the assumption that recoverable collateral equals
+`λS` when the stake is restaked across protocols. The second is not a technicality — if a stake
+simultaneously secures Mergit and another obligation, the effective concurrency cap of §7.5(ii)
+falls by an amount determined outside our system, which is an argument for either dedicated
+(non-restaked) collateral or for the cap to be set from observed restaking exposure.
+
+**Choosing the posterior quantile.** §7.5(i) sets the audit rate from a lower-confidence bound on
+`θ` without specifying the quantile. That choice trades audit cost against deterrence margin
+directly, and its optimum depends on the cost of a missed falsification relative to `c_audit` —
+tractable, and worth doing properly rather than by convention.
 
 **Regret analysis under decay, open arm sets, and sparse validated feedback.** The open theoretical
 problem from §9.6. Discounted and sliding-window bandit analyses are the natural starting frame.

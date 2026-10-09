@@ -414,11 +414,90 @@ this literature will otherwise reject on prior art alone.
       6.3, 7.2, 8.1, 8.2, 8.6, 11.5, 12.5, 13, 14, 16 and to the whitepaper. Two material outcomes:
       a wrong title for [36], and the discovery that our §7.2 rule falls inside [34]'s
       memoryless-bounded-slashing impossibility class (new §7.5).
-- [ ] **NEW, HIGH PRIORITY.** Design and justify the audit-rate coupling `f(posterior) → p` from
-      §7.5, and check it against [34]'s repeated-game criterion. This is the open mechanism-design
-      problem the full read created. Until resolved, §13 carries it as a stated limitation and the
-      conservative posture is `λ = 1`.
+- [x] **CLOSED (2026-10-09).** Designed the audit-rate coupling. Outcome recorded in §H below; §§7.2,
+      7.4, 7.5, 7.6 rewritten, plus §1.5, §10.4, §11.5, §13, §14 and the whitepaper.
+- [ ] Re-derive §7.6's deviation argument inside [34]'s formalism, with recoverable collateral less
+      than `λS` under restaking. Carried in §14.
+- [ ] Choose the `θ_LCB` quantile in §7.5(i) by optimizing audit cost against deterrence margin,
+      rather than by convention. Carried in §14.
 - [ ] Re-check whether anything in [34]'s §5.3 (reputation-weighted slashing) or Lemma 4
       (whitewashing) should further constrain our registration-stake parameterization in §8.6.
 - [ ] Read [14] (SoK on agentic commerce security) in full before drafting §12, to position
       against its taxonomy rather than duplicate it.
+
+---
+
+## H. The audit-rate coupling (worked 2026-10-09)
+
+Design record for §§7.2–7.6. Three findings, in order of importance.
+
+### H.1 The paper's deterrence condition was wrong
+
+The pre-existing condition `p* = (V + c_exec)/(λS)` was mis-derived in two ways at once. It took the
+defection gain as `V + c_exec`, which double-counts: the agent receives `V` in both branches when
+undetected, so `V` cancels and the gain is the *saved work* plus the forgone expected value of
+attempting honestly. And it omitted payment forfeiture from the penalty side, although escrow
+returns to the requester on a failed audit (§10.1). Correct condition:
+
+```
+P_d · (V + λ·S)  ≥  c_exec + (1 − θ)·V
+```
+
+The old formula was ≈2.9× over-conservative (0.100 vs 0.034 at `V=2, c_exec=1, θ=0.95, λ=1, S=30`).
+Being conservative was not harmless: it inflated every cost figure in §7.4 and §11.5, and it
+obscured the `θ`-dependence that H.2 depends on. All numbers re-derived.
+
+### H.2 `f` should not be invented — it is the condition evaluated at a pessimistic posterior
+
+Because `p*` depends on the agent's `θ`, and §8.2 already maintains `Beta(α, β)` over `θ`, the audit
+rate is just the deterrence condition at a lower-confidence bound:
+
+```
+p(a,k) = ( c_exec + (1 − θ_LCB(a,k))·V ) / (V + λ·S)
+```
+
+Every property demanded of `f` then follows from the derivation rather than being imposed: bounded
+below by `c_exec/(V + λS) > 0` as `θ_LCB → 1`; rising on validated failure; rising under posterior
+uncertainty, so newcomers are audited most; and history-dependent, which exits [34]'s Definition 4.
+
+Sampled rates at `S=30`: `θ=0.95 → 0.034`, `θ=0.6 → 0.056`, `θ=0.2 → 0.081`. At `S=5`: 0.157, 0.257,
+0.371. Spread widens as collateral thins, which is the right direction.
+
+**Deliberately rejected:** lowering `p` in exchange for an agent's continuation value ("too much
+future business to risk it"). The agent privately knows its exit intention and the platform does
+not, so crediting continuation value sets `p` lowest for exactly the agent planning an exit scam.
+Continuation value explains compliance; it may not set the floor.
+
+### H.3 History-dependence alone does **not** answer Theorem 4.2 — the volume channel does
+
+This corrects the earlier §7.5. The substance of bounded-slashing failure is not history-blindness
+but *volume*: one stake secures many concurrent tasks while slashing is capped at `λS`, so an agent
+defecting on `n` in-flight tasks simultaneously collects `n` times the gain against a single slash.
+A posterior-derived audit rate does nothing here, because no posterior has updated yet when the
+defections are simultaneous.
+
+Forfeited payments scale with `n`; the slash does not. Hence
+
+```
+n · (c_exec + (1 − θ)V)  ≤  n · P_d · V  +  λS
+  ⟹  n_max = λS / [ (c_exec + (1 − θ)V) − P_d·V ]
+```
+
+At `V=2, c_exec=1, θ=0.95, λ=1, P_d=0.05`: `n_max = 30`, linear in stake. Unbounded only when
+`P_d·V` exceeds the per-task gain, i.e. `P_d ≥ 0.55` — not the operating regime. Enforced **per
+operator**, not per identity, since one operator can defect across all identities at once. This also
+replaces the informal "bounds this, imperfectly" remark in §10.4.
+
+### H.4 Deviation argument and its standing
+
+(i) gives pointwise one-shot IC at every reachable history; continuation effects of detection are
+weakly negative (probation, lost routing share), so accounting for them strengthens the inequality.
+By the one-shot deviation principle, no deviation built from single-task deviations pays. (ii) bounds
+the only deviation that is not of that form — simultaneous multi-task defection. (iii) prevents a
+second attempt under a softly-updated posterior.
+
+**Standing:** a derivation under §5.2's assumptions, not a theorem in [34]'s formalism. Named
+dependencies: recoverable collateral assumed `= λS`, which **restaking undercuts** — and [34] is
+specifically about restaking, so this is the weakest joint; `P_d` depends on a challenger population
+the protocol does not enforce; adjudication rests on evidence rather than recomputation, so both
+`θ`-estimates and falsification findings carry noise absent from the deterministic setting.
