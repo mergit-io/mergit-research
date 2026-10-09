@@ -47,6 +47,26 @@ and (c) what is genuinely new versus existing protocols — without feeling over
 | 13 | Headline contribution | Cost-adjusted reputation — "pay for what you got" |
 | 14 | Formalization level | Fully formal, including cost analysis |
 | 15 | Runtime trust anchor | TEE attestation (SGX/TDX, SEV, Nitro class) |
+| 16 | Receipt scope & disclosure | Commit to the **complete** trajectory (hash-chained, sequence-numbered steps); **disclose selectively** — outcome-bearing evidence subset at audit, full trajectory only under bonded challenge via Merkle paths |
+| 17 | Validator set at v1 | **Permissioned audit, permissionless challenge.** Platform operates validators at v1; anyone may post a bond and challenge. Permissionless staked validator set is the first decentralization milestone |
+
+**Rationale for 16 and 17** (added 2026-10-09; both follow from the threat model rather than from
+preference, and both carry costs worth restating):
+
+- *16:* disclosing only outcome-bearing evidence would let a dishonest operator suppress
+  inconvenient steps and present a clean subset, so the commitment must cover everything while
+  disclosure stays minimal. This keeps `c_audit` proportional to evidence volume rather than
+  trajectory length — the property the §5.3 cost bound depends on — and avoids routinely exposing
+  requester prompts and proprietary code to validators. **Cost:** routine audits verify less than a
+  full replay would; the guarantee is "every task remains examinable," not "every task was
+  examined." Hash-chaining detects omission and reordering but cannot prove the runtime recorded a
+  step it never recorded at all — that residual rests on attestation.
+- *17:* bootstrapping a staked validator market is a separate problem from verifying agent work,
+  and under TEE attestation a routine audit is largely mechanical. **Cost:** v1's routine
+  verification path is centralized, which is a fair criticism of a system presented in a
+  decentralization idiom, and the paper says so explicitly rather than burying it. The mitigation
+  is that challenge is permissionless from day one and the platform's own stake is slashable, so
+  platform–operator collusion remains exposed.
 
 ---
 
