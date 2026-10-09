@@ -52,18 +52,29 @@ and (c) what is genuinely new versus existing protocols — without feeling over
 
 ## 3. Thesis
 
-> Outcome-contingent payment for autonomous agent work has been economically infeasible because
-> verification has been implemented as re-execution, making the cost of checking a task scale with
-> the cost of doing it. Because Mergit controls the execution environment, the runtime itself can
-> emit attested, tamper-evident execution receipts, reducing verification to auditing a receipt
-> with sampled re-execution. Under that design, posted stake substitutes for verification compute:
-> higher collateral permits a lower audit rate at equal deterrence. This makes verified-work
-> markets — paying for what was actually delivered, priced by verified quality per unit cost —
-> practical rather than aspirational.
+> Outcome-contingent payment is a solved problem for machine work that can be re-executed:
+> restaking-based verifiable inference posts stake, audits probabilistically, and slashes on
+> detected cheating. It does not transfer to agent work, for a structural rather than economic
+> reason — an agent task is multi-step, tool-using, and side-effecting, so once a repository has
+> been mutated, an API called, or money spent, the task cannot be re-executed even in principle.
+> Verification by re-execution is therefore not merely expensive here, it is frequently undefined.
+> Because Mergit owns the execution environment, it can attest execution instead of reproducing
+> it: the runtime emits hardware-attested, tamper-evident execution receipts, and verification
+> becomes an audit of evidence. Attested metering then makes the principal contribution available —
+> reputation as verified quality per unit cost — turning "pay for what you got" into a measurable
+> quantity rather than a slogan.
 
-The claim is falsifiable: it predicts that cost of trust per task approaches the cost of a receipt
-audit rather than the cost of the task, and that honest behavior is sustainable at audit rates far
-below 1.
+**Revision note (2026-10-09).** An earlier version of this brief claimed "stake substitutes for
+verification compute" as the paper's central result. Research found this is prior art in the
+verifiable-inference setting (arXiv 2608.09055), and TEE-plus-optimistic-challenge is likewise
+published (arXiv 2512.20176). The thesis was reframed: non-reproducibility of agent work is now
+the structural pillar, cost-adjusted reputation the headline contribution, and the deterrence
+analysis is presented as an adaptation of prior art. See `paper/research.md` §F2.
+
+Falsifiable content of the reframed claim: that agent-task verification can be grounded in attested
+execution evidence without re-execution; that cost of trust is bounded by evidence volume rather
+than task cost; and that cost-adjusted reputation changes routing outcomes relative to
+quality-only ranking.
 
 ---
 
@@ -78,13 +89,20 @@ equivalent to one succeeding cheaply. Existing systems score quality (Bittensor)
 satisfaction (Virtuals ACP); none treat cost-efficiency as a first-class trust dimension. This is
 the formal statement of "pay for what you got."
 
-**C1 (enabler) — Verifiable Execution Receipts; the sandbox as attestor.**
-The harness emits a structured, signed record per task: tool calls, commands executed, test
-results, diff hashes, artifacts touched, tokens and gas consumed. A Merkle root is anchored
-on-chain; the full receipt lives off-chain, matching ERC-8004's pointer-and-commitment pattern.
-Validators audit receipts; full re-execution occurs only on challenge. No existing system in this
-space owns a runtime, so none can attest execution — ERC-8004 is a registry without a runtime,
-x402 a payment rail without a runtime, ACP a marketplace without a runtime.
+**C1 (structural pillar) — The non-reproducibility argument, and Verifiable Execution Receipts.**
+Agent work cannot be verified by re-execution because it cannot be re-executed: tool calls have
+effects outside the computation (mutated repositories, called APIs, spent money), state cannot be
+restored, and even restored state yields a different trajectory. The inference literature already
+strains against a weaker form of this (non-determinism defeating bit-exact comparison, arXiv
+2510.16028; determinism engineered specifically to enable verification, arXiv 2602.00182); agent
+execution is strictly harder. Attested execution evidence is therefore the remaining substrate.
+The harness emits a structured, signed record per task — tool calls, commands, test results, diff
+hashes, artifacts touched, tokens and gas consumed — Merkle-rooted on-chain with the body
+off-chain, matching ERC-8004's pointer-and-commitment pattern. Only a platform owning the runtime
+can do this: ERC-8004 is a registry without a runtime, x402 a payment rail without a runtime, ACP
+a marketplace without a runtime.
+*Explicitly not claimed as novel:* attestation combined with optimistic challenge (published,
+arXiv 2512.20176). The novelty is the object being verified, not the pairing of mechanisms.
 
 **C3 — Budget-constrained bandit routing.**
 Autonomous agent selection is framed as a contextual bandit under cost constraints: maximize
@@ -148,9 +166,21 @@ Substituting the minimum sustainable audit rate:
 C_trust(p*)  =  c_audit  +  ((V + c_exec) / (λ·S)) · c_exec
 ```
 
-**Result (stake substitutes for verification compute).** `C_trust` is decreasing in `S`. As stake
-rises, the audit rate required for deterrence falls, and the cost of trust approaches `c_audit`
-rather than scaling with `c_exec`.
+**Adaptation, not result (stake trades against audit frequency).** `C_trust` is decreasing in `S`:
+as stake rises, the audit rate required for deterrence falls, and the cost of trust approaches
+`c_audit` rather than scaling with `c_exec`. **This substitution is prior art** in the
+verifiable-inference setting (arXiv 2608.09055, which quantifies it — baseline audit rate falling
+0.370 → 0.145 at discount factor 0.95 — and notes that higher audit rates raise verification cost
+linearly across honest queries). The paper presents the above as adaptation and cites it as
+foundation.
+
+What genuinely changes in our setting, and what §7 must establish:
+- the audited object is an *attestation of a non-reproducible trajectory*, not a *substituted
+  computation*;
+- challenge cannot reliably terminate in re-execution, so disputes resolve against receipt evidence
+  and attestation integrity, leaving a residual adjudication burden to characterize;
+- `c_audit` is bounded by evidence volume rather than by task cost, which is what keeps the
+  substitution useful when `c_exec` is unavailable as a comparison baseline.
 
 **Contrast with prior designs.** Verification-by-re-execution operates at `p ≈ 1`, so
 `C_trust ≈ c_exec` — the cost of checking equals the cost of the work. That is the economic reason
@@ -263,9 +293,17 @@ nothing of its own.
 | **Bittensor** | Validator-scored quality via Yuma Consensus; stake-weighted aggregation | Inflation-funded commodity production within subnets, not requester-funded verified task settlement |
 | **Olas / Autonolas** | Proof of Active Agent staking tied to verifiable outcomes | Activity and KPI rewards, not per-task outcome-contingent payment with clawback |
 | **Fetch.ai** | Agent identity credentials; ANAME domain-linked trust signals | Identity and discovery, not verification economics or conditional settlement |
+| **Restaking-based verifiable inference** (arXiv 2608.09055) | Stake, probabilistic audit, slashing; quantified substitution between audit budget and mechanism parameters | Verifies a *re-executable* model call; no reputation system; no cost-adjusted trust; inapplicable where re-execution is undefined |
+| **Optimistic TEE-rollups** (arXiv 2512.20176) | TEE attestation combined with optimistic challenge | Deterministic computation with re-execution as dispute terminator; not agent trajectories with external side effects |
+| **Proof of Sampling** (arXiv 2405.00295) | Nash-equilibrium sampled-audit verification | Same re-executability assumption |
+| **Nondeterminism-aware optimistic verification / EigenAI** (arXiv 2510.16028, 2602.00182) | Confronts non-reproducibility; engineers determinism to enable verification | Addresses numerical non-determinism in pure inference, not side-effecting multi-step execution |
 
-Honest framing: the trust primitives exist; adoption is thin and largely non-operational; nothing
-binds them to an attested execution environment. The gap is the contribution.
+Honest framing, post-research: the trust primitives exist and are largely non-operational [2,17];
+the verification economics exist but assume re-executability [34,35,36]; nothing verifies
+multi-step, side-effecting agent work. **That intersection is the gap, and it is narrower and more
+defensible than "nobody has combined these."** The related-work section must cite [34] and [36]
+prominently — a reviewer familiar with that literature who finds them buried will reject on prior
+art regardless of the rest.
 
 ---
 
