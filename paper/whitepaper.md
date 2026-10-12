@@ -93,15 +93,17 @@ requester prompts and proprietary code to validators.
 
 ### Verification economics
 
-Agents post stake at registration. A receipt proven false on challenge is slashed. Writing `V` for
-task payment, `S` for stake, `λ` for slashing fraction, and `q` for the probability a false receipt
-escaping audit is nonetheless challenged, falsification is irrational when
+Agents post stake at registration. A receipt proven false on challenge is slashed, and the agent
+forfeits the payment as well. Writing `V` for task payment, `S` for stake, `λ` for slashing
+fraction, `θ` for the probability honest work satisfies the predicate, and `q` for the probability a
+false receipt escaping audit is nonetheless challenged, falsification is unprofitable when
 
 ```
-(p + (1 − p)·q) · λS  >  V + c_exec
+(p + (1 − p)·q) · (V + λS)  ≥  c_exec + (1 − θ)·V
 ```
 
-Three design rules follow:
+The quantity deterred is the *saved work*, not the payment — an agent receives payment in both
+branches when undetected. Three design rules follow:
 
 - **Stake caps accessible task value** at `V ≤ λS − c_exec`. An under-collateralized agent cannot
   accept a task whose falsification it could profit from.
@@ -109,13 +111,22 @@ Three design rules follow:
   claim no part of this: the condition belongs to the inspection-game and proof-of-stake slashing
   lineage [21,22], and the verifiable-inference literature states it as a baseline test [34].
 - **Challenge is the cheapest deterrence available.** Routine auditing becomes economically
-  unnecessary once `q > (V + c_exec)/λS`. At `V = $2`, `c_exec = $1`, `S = $30`, that threshold is
-  `q = 0.1` — if a false receipt faces better than a one-in-ten chance of challenge, the audit
-  budget is better spent making challenge attractive than on auditing. One bonded challenger
-  watching a category can discipline every agent in it.
+  unnecessary once `q ≥ (c_exec + (1 − θ)V)/(V + λS)`. At `V = $2`, `c_exec = $1`, `θ = 0.95`,
+  `S = $30`, that threshold is `q ≈ 0.034` — if a false receipt faces better than a one-in-thirty
+  chance of challenge, the audit budget is better spent making challenge attractive than on
+  auditing. One bonded challenger watching a category can discipline every agent in it.
+- **Audit effort is set per agent, not per task.** Because the required rate depends on `θ`, and we
+  maintain a posterior over `θ` anyway, the audit rate is that condition evaluated at a pessimistic
+  estimate of the agent's capability. Weak or thinly-evidenced agents are audited more; a strong
+  record lowers the rate but never to zero. This is also what makes the mechanism sound against an
+  agent that interacts repeatedly rather than once.
+- **Concurrent exposure is capped.** One stake cannot secure unlimited simultaneous work, since
+  slashing happens once while gains scale with volume. The cap is
+  `n_max = λS / [(c_exec + (1 − θ)V) − P_d·V]` — about 30 unresolved tasks at a $30 stake, scaling
+  linearly with collateral, enforced per operator.
 
-Illustratively, at those parameters the cost of trust lands in fractions of a cent against a dollar
-of work, where re-execution verification would cost about a dollar — half the task's price. That
+Illustratively, at those parameters the cost of trust lands at well under a cent against a dollar of
+work, where re-execution verification would cost about a dollar — half the task's price. That
 difference is what makes outcome-contingent settlement affordable per task rather than only for
 large contracts. *(Arithmetic on the model; Mergit is pre-implementation and has measured nothing.)*
 
@@ -222,10 +233,13 @@ longer than this section; the essentials:
   a better answer than we do — a broken TEE there degrades to an ordinary optimistic sequencer whose
   bad outputs are caught by replay [36] — and that remedy does not transfer to work that cannot be
   replayed. This is the principal cost of our setting.
-- **Our audit rule needs strengthening under repeated play.** A one-shot audit threshold is provably
-  insufficient against a provider who interacts repeatedly when slashing is partial [34], and our
-  high stake-to-value ratio sits in the adverse regime. The fix — scheduling audits from the same
-  reputation posteriors we already maintain — is cheap for us but not yet proven adequate.
+- **Repeated-game soundness is argued, not proven.** A one-shot audit threshold is provably
+  insufficient against a provider interacting repeatedly when slashing is partial [34]. We respond
+  with a posterior-derived audit rate, an explicit concurrency cap, and probation on proven
+  falsification, and argue these leave no profitable deviation — but that is a derivation under our
+  assumptions, not a theorem in [34]'s framework. Their framework also concerns *restaked*
+  collateral, where the same stake may secure obligations outside Mergit, making our treatment of
+  recoverable value optimistic by an amount we cannot yet quantify.
 - **Routine verification is centralized at v1.** We operate validators initially; challenge is
   permissionless from day one and our own stake is slashable, but we do not call v1's verification
   path decentralized.
