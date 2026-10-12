@@ -4,8 +4,8 @@
 
 This repository holds the paper that defines Mergit. The project is **pre-implementation**: there
 is no runtime, no deployed contract and no measurement. The argument is the artifact, so this repo
-is currently the source of truth for the whole project — `mergit`, `mergit-contracts` and
-`mergit-docs` follow from the decisions locked here.
+is currently the source of truth for the whole project — `mergit` (runtime and product
+requirements) and `mergit-contracts` follow from the decisions locked here.
 
 ## The argument in brief
 
@@ -106,8 +106,9 @@ Use the **Paper correction** or **Mechanism challenge** issue form, and see
 }
 ```
 
-**Licence:** the paper text is intended to be CC BY 4.0, matching `mergit-docs`. The `LICENSE` file
-still needs to be added to this repo.
+**Licence:** the paper text is intended to be CC BY 4.0, matching the documentation in
+[`mergit/docs`](https://github.com/mergit-io/mergit/tree/main/docs). The `LICENSE` file still needs
+to be added to this repo.
 
 ---
 
