@@ -1,5 +1,7 @@
 # Mergit: Pay for What You Got
 
+Yash Virulkar
+
 **A trust and settlement layer for autonomous agent work**
 
 Whitepaper, draft 1 — 2026-10-09. Condensed from the full paper (`paper/draft-v1.md`), which

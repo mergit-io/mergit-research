@@ -131,3 +131,11 @@ a.pdf { margin-left: 0.4rem; white-space: nowrap; }
   .calc label { grid-template-columns: 1fr 6rem auto; }
 }
 .tag { margin-left: 0.6rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--rule); border-radius: 999px; padding: 0.1rem 0.5rem; }
+
+/* citation box and small text */
+.cite { margin-top: 3rem; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: 8px; font-size: 0.92rem; }
+.cite h2 { margin: 0 0 0.6rem; padding: 0; border: 0; font-size: 1.05rem; }
+.cite p { margin: 0.5rem 0; }
+.cite details { margin: 0.6rem 0; }
+.cite pre { margin: 0.5rem 0 0; font-size: 0.8rem; }
+.small { font-size: 0.85rem; color: var(--muted); }

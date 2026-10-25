@@ -12,6 +12,7 @@ import html
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,35 +65,131 @@ TOOLS = [
 
 PDFS = {"paper": ("build/draft-v1-r5.pdf", "mergit-paper-r5.pdf", "PDF of the full paper")}
 
+SITE_URL = "https://research.mergit.site"
+AUTHORS = ["Yash Virulkar"]
+
+# Facts about the current revision of the paper, used for the citation box and for the
+# Google Scholar tags. Change these together with the paper's own revision line.
+PAPER = {
+    "slug": "paper",
+    "version": "Draft 1, revision 5",
+    "date": "2026-10-24",
+    "bibkey": "virulkar2026payforwhatyougot",
+}
+
+SUMMARY = (
+    "Outcome-contingent payment for agent work cannot rest on re-execution, because agent tasks have "
+    "side effects. Mergit attests execution instead, and ranks agents by verified quality per unit cost."
+)
+
 STATUS = (
     "Mergit is pre-implementation. Every figure in these documents is arithmetic on a stated model "
     "or the output of a model-based simulation. Nothing has been measured."
 )
 
 
-def run_pandoc(src: Path, out: Path, title: str) -> None:
+def attr(text: str) -> str:
+    return html.escape(text, quote=True)
+
+
+def social_meta(title: str, description: str, url: str) -> str:
+    """Description and the tags that make a pasted link show a title and summary."""
+    return "\n".join(
+        [
+            f'<meta name="description" content="{attr(description)}">',
+            '<meta property="og:type" content="article">',
+            '<meta property="og:site_name" content="Mergit Research">',
+            f'<meta property="og:title" content="{attr(title)}">',
+            f'<meta property="og:description" content="{attr(description)}">',
+            f'<meta property="og:url" content="{attr(url)}">',
+            '<meta name="twitter:card" content="summary">',
+            f'<meta name="twitter:title" content="{attr(title)}">',
+            f'<meta name="twitter:description" content="{attr(description)}">',
+        ]
+    )
+
+
+def scholar_meta(title: str) -> str:
+    """Google Scholar's inclusion tags. The PDF must sit in the same folder as the page."""
+    date = PAPER["date"].replace("-", "/")
+    tags = [("citation_title", title)]
+    tags += [("citation_author", a) for a in AUTHORS]
+    tags += [
+        ("citation_publication_date", date),
+        ("citation_online_date", date),
+        ("citation_pdf_url", f"{SITE_URL}/{PAPER['slug']}/{PDFS[PAPER['slug']][1]}"),
+        ("citation_abstract_html_url", f"{SITE_URL}/{PAPER['slug']}/"),
+        ("citation_language", "en"),
+    ]
+    return "\n".join(f'<meta name="{n}" content="{attr(v)}">' for n, v in tags)
+
+
+def bibtex(title: str) -> str:
+    authors = " and ".join(f"{a.split()[-1]}, {' '.join(a.split()[:-1])}" for a in AUTHORS)
+    return (
+        f"@misc{{{PAPER['bibkey']},\n"
+        f"  author = {{{authors}}},\n"
+        f"  title  = {{{title}}},\n"
+        f"  year   = {{{PAPER['date'][:4]}}},\n"
+        f"  note   = {{{PAPER['version']}}},\n"
+        f"  url    = {{{SITE_URL}/{PAPER['slug']}/}}\n"
+        "}"
+    )
+
+
+def cite_box(title: str) -> str:
+    byline = ", ".join(AUTHORS)
+    return f"""<aside class="cite" id="cite">
+<h2>Cite this paper</h2>
+<p>{html.escape(byline)}. <em>{html.escape(title)}.</em> Mergit Research, {html.escape(PAPER['version'].lower())}, {PAPER['date']}.
+<a href="{SITE_URL}/{PAPER['slug']}/">{SITE_URL}/{PAPER['slug']}/</a></p>
+<details><summary>BibTeX</summary><pre><code>{html.escape(bibtex(title))}</code></pre></details>
+<p class="small">This is a draft and it changes. Cite the revision you read, and see
+<a href="{REPO_URL}/commits/main/paper">the history on GitHub</a> for what changed between revisions.</p>
+</aside>
+"""
+
+
+def run_pandoc(src: Path, out: Path, title: str, slug: str) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     first = next((ln for ln in src.read_text(encoding="utf-8").splitlines() if ln.strip()), "")
     # A document without its own H1 gets the title as a visible heading instead.
     heading = [] if first.startswith("# ") else ["--metadata", f"title={title}"]
-    cmd = [
-        "pandoc", str(src),
-        # Dollar signs in the text are prices ("$2"), not TeX math.
-        "-f", "markdown-tex_math_dollars",
-        "-t", "html5", "-s",
-        "--toc", "--toc-depth=2",
-        "--css", "../style.css",
-        "-V", "document-css=false",
-        "-V", "lang=en",
-        # pagetitle sets <title> only; the documents carry their own H1.
-        "--metadata", f"pagetitle={title}",
-        "--resource-path", str(src.parent),
-        *heading,
-        "-H", str(SITE / "head.html"),
-        "-B", str(SITE / "nav.html"),
-        "-o", str(out),
-    ]
-    subprocess.run(cmd, check=True)
+    is_paper = slug == PAPER["slug"]
+    head = (SITE / "head.html").read_text(encoding="utf-8")
+    head += social_meta(title, SUMMARY, f"{SITE_URL}/{slug}/") + "\n"
+    nav = '<p class="back"><a href="../">&larr; Mergit Research</a>'
+    after = ""
+    if is_paper:
+        head += scholar_meta(title) + "\n"
+        pdf = PDFS[slug][1]
+        nav += f' &middot; <a href="{pdf}">PDF</a> &middot; <a href="#cite">Cite</a>'
+        after = cite_box(title)
+    nav += "</p>\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        head_f, nav_f, after_f = (Path(tmp) / n for n in ("head.html", "nav.html", "after.html"))
+        head_f.write_text(head, encoding="utf-8")
+        nav_f.write_text(nav, encoding="utf-8")
+        after_f.write_text(after, encoding="utf-8")
+        cmd = [
+            "pandoc", str(src),
+            # Dollar signs in the text are prices ("$2"), not TeX math.
+            "-f", "markdown-tex_math_dollars",
+            "-t", "html5", "-s",
+            "--toc", "--toc-depth=2",
+            "--css", "../style.css",
+            "-V", "document-css=false",
+            "-V", "lang=en",
+            # pagetitle sets <title> only; the documents carry their own H1.
+            "--metadata", f"pagetitle={title}",
+            "--resource-path", str(src.parent),
+            *heading,
+            "-H", str(head_f),
+            "-B", str(nav_f),
+            "-A", str(after_f),
+            "-o", str(out),
+        ]
+        subprocess.run(cmd, check=True)
 
 
 def index_html() -> str:
@@ -115,6 +212,7 @@ def index_html() -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{social_meta("Mergit Research", SUMMARY, SITE_URL + "/")}
 <title>Mergit Research</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -147,7 +245,7 @@ def main() -> int:
         if not src.exists():
             print(f"missing source: {rel}", file=sys.stderr)
             return 1
-        run_pandoc(src, DIST / slug / "index.html", title)
+        run_pandoc(src, DIST / slug / "index.html", title, slug)
         print(f"built {slug}")
 
     figures = ROOT / "paper" / "figures"
@@ -170,6 +268,16 @@ def main() -> int:
 
     (DIST / "index.html").write_text(index_html(), encoding="utf-8")
     (DIST / ".nojekyll").write_text("", encoding="utf-8")
+
+    # Crawlers: allow everything, and list every page once.
+    pages = [""] + [f"{slug}/" for slug, *_ in DOCS] + [f"{slug}/" for slug, *_ in TOOLS]
+    urls = "\n".join(f"  <url><loc>{SITE_URL}/{p}</loc></url>" for p in pages)
+    (DIST / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + "\n</urlset>\n",
+        encoding="utf-8",
+    )
+    (DIST / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8")
     print(f"site written to {DIST}")
     return 0
 

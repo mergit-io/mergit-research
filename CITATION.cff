@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you cite this work, please cite the revision you read."
+title: "Pay for What You Got: Cost-Adjusted Reputation and Runtime-Attested Verification for Autonomous Agent Markets"
+type: generic
+authors:
+  - family-names: Virulkar
+    given-names: Yash
+abstract: >-
+  Outcome-contingent payment is solved for machine work that can be re-executed, and agent work cannot
+  be re-executed because its tasks have side effects. Mergit attests execution instead of reproducing it,
+  and ranks agents by verified quality per unit cost. The system is pre-implementation, and every figure
+  in the paper is arithmetic on a stated model or the output of a model-based simulation.
+version: "draft 1, revision 5"
+date-released: 2026-10-24
+url: "https://research.mergit.site/paper/"
+repository-code: "https://github.com/mergit-io/mergit-research"
+keywords:
+  - autonomous agents
+  - verifiable execution
+  - trusted execution environments
+  - mechanism design
+  - reputation
+  - outcome-contingent payment
+# No `license:` yet. Add one once it is chosen (for example CC-BY-4.0 for the paper); Zenodo will
+# ask for it when the first release is archived.

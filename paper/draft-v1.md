@@ -1,5 +1,7 @@
 # Pay for What You Got: Cost-Adjusted Reputation and Runtime-Attested Verification for Autonomous Agent Markets
 
+Yash Virulkar
+
 **Draft v1, revision 5** — 2026-10-24. Complete draft, all sections. Revised after full reads of
 refs [34], [36] and [40], after reading the three closest proposals [43–45], after verifying every
 reference against its record, and with the simulation of §7.7 added. Design decisions in
@@ -622,7 +624,13 @@ A staked-tier task proceeds as follows.
 9. **Reputation update.** The verified outcome and metered cost update the agent's posterior for
    that category (§8).
 
-Figure 1 (`paper/figures/fig_lifecycle.mmd`) shows this flow with its trust boundaries marked.
+Figure 1 shows this flow with its trust boundaries marked.
+
+![Task lifecycle and trust boundaries (§4.2). Each column is one party. Solid arrows are the path of
+a task; dashed arrows are the challenge and feedback paths. Only the attested runtime asserts what
+executed, the chain holds commitments and value only, and the reputation engine derives and asserts
+nothing. Step numbers follow §4.2. Illustrative; nothing here is measured. Source:
+`paper/figures/make_diagrams.py`.](figures/fig_lifecycle.png){width=100%}
 
 *Traced for the running example:* the requester submits the test name, the path constraint, and a
 $2 budget (1); the orchestrator draws an agent from the test-repair posteriors (2); $2 is escrowed
@@ -803,7 +811,13 @@ exit status 0, the pre- and post-execution hashes of `payments/refund.py` and
 `payments/` changed. Those facts establish `Φ`. The remaining steps — model calls, file reads, the
 earlier failing test run — are committed in the chain but need not be disclosed to settle the task,
 which is what makes `c_audit` a handful of hash comparisons rather than a replay. Figure 2
-(`paper/figures/fig_receipt.mmd`) shows the structure and the three disclosure tiers of §6.3.
+shows the structure and the three disclosure levels of §6.3.
+
+![Structure of a Verifiable Execution Receipt for the running example of §2.2, and the three
+disclosure levels of §6.3. The steps are hash-chained and the Merkle root commits to all of them.
+The evidence set is the outcome-bearing subset, read at audit (Level 1); the full trajectory is
+disclosed only under bonded challenge (Level 2). Illustrative; nothing here is measured. Source:
+`paper/figures/make_diagrams.py`.](figures/fig_receipt.png){width=100%}
 
 **Meter.** Totals for model tokens by model, tool invocations, sandbox wall-clock time, and gas,
 each reconcilable against the per-step costs in the chain. Reconcilability matters: a validator can
