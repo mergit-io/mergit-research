@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Audit-rate calculator | Mergit Research</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<p class="back"><a href="../">&larr; Mergit Research</a></p>
+
+<h1>Audit-rate calculator</h1>
+<p class="lead">How often must a receipt be audited so that forging it does not pay? Change the numbers and watch the answer move.</p>
+
+<p class="status">
+  This is arithmetic on the model in <a href="../paper/#verification-economics">section 7 of the paper</a>.
+  Nothing here is measured. Mergit is pre-implementation, and the defaults are the paper's worked example.
+</p>
+
+<form id="calc" class="calc" autocomplete="off" novalidate>
+  <fieldset>
+    <legend>The task</legend>
+    <label>Payment <span class="sym">V</span>
+      <input name="V" type="number" min="0.01" step="any" value="2" inputmode="decimal"><span class="unit">$</span></label>
+    <label>Cost to do the work <span class="sym">c<sub>exec</sub></span>
+      <input name="cExec" type="number" min="0" step="any" value="1" inputmode="decimal"><span class="unit">$</span></label>
+    <label>Cost of one audit <span class="sym">c<sub>audit</sub></span>
+      <input name="cAudit" type="number" min="0" step="any" value="0.02" inputmode="decimal"><span class="unit">$</span></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>The agent</legend>
+    <label>Chance honest work passes <span class="sym">&theta;</span>
+      <input name="theta" type="number" min="0" max="1" step="any" value="0.95" inputmode="decimal"></label>
+    <label>Stake posted <span class="sym">S</span>
+      <input name="S" type="number" min="0" step="any" value="30" inputmode="decimal"><span class="unit">$</span></label>
+    <label>Fraction slashed when caught <span class="sym">&lambda;</span>
+      <input name="lambda" type="number" min="0.01" max="1" step="any" value="1" inputmode="decimal"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>The market</legend>
+    <label>Chance a false receipt is challenged <span class="sym">q</span>
+      <input name="q" type="number" min="0" max="0.99" step="any" value="0" inputmode="decimal"></label>
+    <label>Simultaneous unresolved tasks allowed <span class="sym">n<sub>cap</sub></span>
+      <input name="nCap" type="number" min="1" step="1" value="5" inputmode="numeric"></label>
+    <label>Most audits you will pay for <span class="sym">p<sub>max</sub></span>
+      <input name="pMax" type="number" min="0.0001" max="1" step="any" value="0.05" inputmode="decimal"></label>
+    <label class="check"><input name="sees" type="checkbox" checked>
+      The agent can see whether the task's check passed before it submits</label>
+  </fieldset>
+</form>
+
+<div id="out" class="out" aria-live="polite"></div>
+
+<h2>What the numbers assume</h2>
+<ul class="notes">
+  <li>One agent, one stake, and the one-shot and concurrency conditions of
+    <a href="../paper/#deterrence">section 7.2</a> and the exact concurrency bound of
+    <a href="../paper/#repeated-interaction-and-why-the-one-shot-rule-is-not-enough">section 7.5</a>.</li>
+  <li>The audit rate here is the one a platform would set when the agent's chance of passing is known.
+    The paper sets it from a pessimistic estimate of that chance, so a new agent is audited more.
+    To see that, enter a lower <span class="sym">&theta;</span>.</li>
+  <li>Ticking the box on the agent seeing the result gives the stronger, conservative condition. Clear it
+    only when the check is something the requester alone can judge.</li>
+  <li>The paper tested this mechanism in a simulation, not on real work, and says in its limitations section
+    where the argument is weakest. Read that before relying on any figure.</li>
+</ul>
+
+<script src="core.js"></script>
+<script src="calc.js"></script>
+</body>
+</html>

@@ -105,3 +105,29 @@ a.doc { font-weight: 600; font-size: 1.08rem; }
 ul.docs p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.95rem; }
 a.pdf { margin-left: 0.4rem; white-space: nowrap; }
 .foot { margin-top: 2rem; font-size: 0.9rem; }
+
+/* calculator */
+.sym { font-family: "DM Mono", ui-monospace, monospace; font-size: 0.85em; color: var(--muted); }
+.calc { display: grid; gap: 1.2rem; margin: 1.6rem 0 2rem; }
+.calc fieldset { border: 1px solid var(--rule); border-radius: 8px; padding: 0.9rem 1.1rem 1.1rem; min-width: 0; }
+.calc legend { font-weight: 600; padding: 0 0.4rem; }
+.calc label { display: grid; grid-template-columns: 1fr 7.5rem auto; gap: 0.6rem; align-items: center; margin-top: 0.7rem; font-size: 0.95rem; }
+.calc label.check { display: flex; gap: 0.6rem; align-items: flex-start; }
+.calc .unit { color: var(--muted); width: 1rem; }
+.calc input[type="number"] {
+  width: 100%; padding: 0.4rem 0.5rem; font: inherit; font-size: 1rem;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 5px;
+}
+.calc input:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.out { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin: 1.5rem 0 2.5rem; }
+.out .card { border: 1px solid var(--rule); border-radius: 8px; padding: 0.9rem 1.1rem; }
+.out .card h3 { margin: 0; font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+.out .big { margin: 0.3rem 0; font-size: 1.7rem; font-weight: 600; line-height: 1.2; }
+.out .detail { margin: 0; font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+.warn { color: var(--ink); border-left: 3px solid #c0392b; padding-left: 0.8rem; }
+.notes { font-size: 0.95rem; color: var(--muted); padding-left: 1.2rem; }
+.notes li { margin: 0.5rem 0; }
+@media (max-width: 520px) {
+  .calc label { grid-template-columns: 1fr 6rem auto; }
+}
+.tag { margin-left: 0.6rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--rule); border-radius: 999px; padding: 0.1rem 0.5rem; }

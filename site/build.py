@@ -54,6 +54,14 @@ DOCS = [
     ),
 ]
 
+TOOLS = [
+    (
+        "calculator",
+        "Audit-rate calculator",
+        "How often must a receipt be audited so that forging it does not pay? The paper's section 7 mechanism, with your own numbers.",
+    ),
+]
+
 PDFS = {"paper": ("build/draft-v1-r5.pdf", "mergit-paper-r5.pdf", "PDF of the full paper")}
 
 STATUS = (
@@ -89,6 +97,11 @@ def run_pandoc(src: Path, out: Path, title: str) -> None:
 
 def index_html() -> str:
     items = []
+    for slug, title, blurb in TOOLS:
+        items.append(
+            f'<li><a class="doc" href="{slug}/">{html.escape(title)}</a>'
+            f'<span class="tag">Interactive</span><p>{html.escape(blurb)}</p></li>'
+        )
     for slug, _src, title, blurb in DOCS:
         extra = ""
         if slug in PDFS and (ROOT / PDFS[slug][0]).exists():
@@ -149,6 +162,11 @@ def main() -> int:
         src = ROOT / rel
         if src.exists():
             shutil.copy(src, DIST / slug / name)
+
+    for slug, _title, _blurb in TOOLS:
+        # test.js stays in the repo; it is a check, not part of the site.
+        shutil.copytree(SITE / slug, DIST / slug, ignore=shutil.ignore_patterns("test.js"))
+        print(f"copied {slug}")
 
     (DIST / "index.html").write_text(index_html(), encoding="utf-8")
     (DIST / ".nojekyll").write_text("", encoding="utf-8")
