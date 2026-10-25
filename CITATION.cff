@@ -21,5 +21,4 @@ keywords:
   - mechanism design
   - reputation
   - outcome-contingent payment
-# No `license:` yet. Add one once it is chosen (for example CC-BY-4.0 for the paper); Zenodo will
-# ask for it when the first release is archived.
+license: CC-BY-4.0

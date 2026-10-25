@@ -2,6 +2,8 @@
 
 Yash Virulkar
 
+Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 **Draft v1, revision 5** — 2026-10-24. Complete draft, all sections. Revised after full reads of
 refs [34], [36] and [40], after reading the three closest proposals [43–45], after verifying every
 reference against its record, and with the simulation of §7.7 added. Design decisions in

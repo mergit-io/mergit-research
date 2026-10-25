@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Build the static research site into site/dist/.
 
-Each Markdown document is rendered to HTML with pandoc; the figures and the PDF are copied
-beside it; an index page lists everything. Run from anywhere:
+Each Markdown document is rendered to HTML with pandoc and placed in a shared page shell (header,
+contents rail, title block with a document fingerprint, footer). Figures, fonts, the PDF and the
+calculator are copied beside it, and an index page lists everything.
 
     python3 site/build.py
 
 Needs pandoc. Output is plain files, so any static host can serve site/dist/.
 """
+import hashlib
 import html
+import re
 import shutil
 import subprocess
 import sys
@@ -20,37 +23,45 @@ SITE = ROOT / "site"
 DIST = SITE / "dist"
 
 REPO_URL = "https://github.com/mergit-io/mergit-research"
+SITE_URL = "https://research.mergit.site"
+AUTHORS = ["Yash Virulkar"]
+LICENCE = ("CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/")
 
-# slug, source, title, description
+# slug, source, title, kind, description
 DOCS = [
     (
         "paper",
         "paper/draft-v1.md",
         "Pay for What You Got: Cost-Adjusted Reputation and Runtime-Attested Verification for Autonomous Agent Markets",
-        "The full paper, draft 1 revision 5. Threat model, formal verification economics, security analysis and limitations.",
+        "Paper",
+        "The full paper. Threat model, formal verification economics, security analysis and limitations.",
     ),
     (
         "whitepaper",
         "paper/whitepaper.md",
         "Mergit: Pay for What You Got",
+        "Whitepaper",
         "The argument in about fifteen minutes, condensed from the full paper.",
     ),
     (
         "simulation",
         "sim/RESULTS.md",
         "Simulation of the audit and slashing mechanism",
+        "Simulation",
         "The model-based simulation of paper section 7.7: setup, deviations tested and results.",
     ),
     (
         "sources",
         "paper/research.md",
         "Sources and verification log",
+        "Sources",
         "Every citation in the paper, what it is used for, and how it was checked.",
     ),
     (
         "design",
         "docs/superpowers/specs/2026-10-09-mergit-research-paper-design.md",
         "Design brief and locked decisions",
+        "Design brief",
         "The seventeen decisions behind the design, with their rationale and costs.",
     ),
 ]
@@ -59,17 +70,15 @@ TOOLS = [
     (
         "calculator",
         "Audit-rate calculator",
+        "Interactive",
         "How often must a receipt be audited so that forging it does not pay? The paper's section 7 mechanism, with your own numbers.",
     ),
 ]
 
-PDFS = {"paper": ("build/draft-v1-r5.pdf", "mergit-paper-r5.pdf", "PDF of the full paper")}
+PDFS = {"paper": ("build/draft-v1-r5.pdf", "mergit-paper-r5.pdf", "PDF")}
 
-SITE_URL = "https://research.mergit.site"
-AUTHORS = ["Yash Virulkar"]
-
-# Facts about the current revision of the paper, used for the citation box and for the
-# Google Scholar tags. Change these together with the paper's own revision line.
+# Facts about the current revision of the paper. Change these together with the paper's own
+# revision line.
 PAPER = {
     "slug": "paper",
     "version": "Draft 1, revision 5",
@@ -81,19 +90,36 @@ SUMMARY = (
     "Outcome-contingent payment for agent work cannot rest on re-execution, because agent tasks have "
     "side effects. Mergit attests execution instead, and ranks agents by verified quality per unit cost."
 )
-
 STATUS = (
     "Mergit is pre-implementation. Every figure in these documents is arithmetic on a stated model "
     "or the output of a model-based simulation. Nothing has been measured."
 )
 
 
+# --------------------------------------------------------------------------- helpers
+
 def attr(text: str) -> str:
     return html.escape(text, quote=True)
 
 
+def git(*args: str) -> str:
+    try:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def logo_svg() -> str:
+    """The Mergit symbol, unchanged apart from decorative-image attributes."""
+    svg = (SITE / "brand" / "symbol.svg").read_text(encoding="utf-8")
+    return re.sub(r'role="img"><title>[^<]*</title>', 'class="mark" aria-hidden="true" focusable="false">', svg)
+
+
 def social_meta(title: str, description: str, url: str) -> str:
-    """Description and the tags that make a pasted link show a title and summary."""
     return "\n".join(
         [
             f'<meta name="description" content="{attr(description)}">',
@@ -137,6 +163,133 @@ def bibtex(title: str) -> str:
     )
 
 
+# --------------------------------------------------------------------------- page shell
+
+def head_html(title: str, description: str, url: str, root: str, extra: str = "") -> str:
+    return f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{html.escape(title)}</title>
+{social_meta(title, description, url)}
+{extra}
+<link rel="icon" href="{root}brand/icon.svg" type="image/svg+xml">
+<link rel="icon" href="{root}brand/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="{root}brand/apple-touch-icon.png">
+<link rel="preload" href="{root}fonts/onest-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{root}fonts/literata-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{root}style.css">"""
+
+
+def header_html(root: str, here: str = "") -> str:
+    def link(label: str, href: str, key: str) -> str:
+        cur = ' aria-current="page"' if key == here else ""
+        return f'<a href="{href}"{cur}>{label}</a>'
+
+    return f"""<header class="bar">
+<div class="bar-in">
+<a class="brand" href="{root or './'}">{logo_svg()}<span>Mergit Research</span></a>
+<nav aria-label="Site">
+{link("Papers", root or "./", "index")}
+{link("Calculator", root + "calculator/", "calculator")}
+<a href="{REPO_URL}">GitHub</a>
+</nav>
+</div>
+</header>"""
+
+
+def footer_html() -> str:
+    return f"""<footer class="foot">
+<div class="foot-in">
+<p>Text and figures are licensed under <a href="{LICENCE[1]}">{LICENCE[0]}</a>. The Mergit name and logo are not.</p>
+<p><a href="{REPO_URL}">Source and history</a>. Pre-implementation: nothing here has been measured.</p>
+</div>
+</footer>"""
+
+
+# --------------------------------------------------------------------------- documents
+
+def split_head(text: str, fallback_title: str):
+    """Pull the title block (H1, author, subtitle, revision note) out of a paper-style document.
+
+    Returns (title, subtitle, note_markdown, body_markdown). Documents that do not start with a
+    title block keep their text and only lose a leading H1.
+    """
+    lines = text.splitlines()
+    if not lines or not lines[0].startswith("# "):
+        return fallback_title, "", "", text
+    title = lines[0][2:].strip()
+    head_end = next((i for i, ln in enumerate(lines[:60]) if ln.strip() == "---"), None)
+    if head_end is None:
+        return title, "", "", "\n".join(lines[1:]).lstrip("\n")
+    blocks = [b.strip() for b in re.split(r"\n\s*\n", "\n".join(lines[1:head_end])) if b.strip()]
+    subtitle, notes = "", []
+    for b in blocks:
+        if b in AUTHORS or b.startswith("Licensed under"):
+            continue
+        if re.fullmatch(r"\*\*[^*\n]+\*\*", b) and "—" not in b:
+            subtitle = b.strip("*")
+            continue
+        notes.append(b)
+    return title, subtitle, "\n\n".join(notes), "\n".join(lines[head_end + 1:]).lstrip("\n")
+
+
+def pandoc_fragment(md_path: Path, resource_dir: Path, toc_depth: int = 3) -> tuple[str, str]:
+    """Render Markdown to (toc_html, body_html) through the one-line template."""
+    out = subprocess.run(
+        [
+            "pandoc", str(md_path),
+            # Dollar signs in the text are prices ("$2"), not TeX math.
+            "-f", "markdown-tex_math_dollars",
+            "-t", "html5", "--section-divs", "--wrap=none",
+            "--toc", f"--toc-depth={toc_depth}",
+            "--template", str(SITE / "mini.html"),
+            "--resource-path", str(resource_dir),
+        ],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    toc = out.split("<!--TOC-->", 1)[1].split("<!--BODY-->", 1)[0].strip()
+    body = out.split("<!--BODY-->", 1)[1].split("<!--END-->", 1)[0].strip()
+    return toc, body
+
+
+def pandoc_inline(markdown: str) -> str:
+    return subprocess.run(
+        ["pandoc", "-f", "markdown-tex_math_dollars", "-t", "html5", "--wrap=none"],
+        input=markdown, capture_output=True, text=True, check=True,
+    ).stdout
+
+
+def fingerprint_html(slug: str, rel: str, src: Path) -> str:
+    commit = git("rev-parse", "HEAD")
+    dirty = bool(git("status", "--porcelain", "--", rel))
+    rows = []
+    if slug == PAPER["slug"]:
+        rows.append(("Version", html.escape(PAPER["version"])))
+        rows.append(("Date", PAPER["date"]))
+    rows.append(("Licence", f'<a href="{LICENCE[1]}">{LICENCE[0]}</a>'))
+    if commit and not dirty:
+        rows.append(("Source", f'<a href="{REPO_URL}/blob/{commit}/{attr(rel)}"><code>{html.escape(rel)}</code></a> at <code>{commit[:10]}</code>'))
+    else:
+        rows.append(("Source", f"<code>{html.escape(rel)}</code>, local build (not committed)"))
+    rows.append(("SHA-256 of source", f'<code class="hash">{sha256(src)}</code>'))
+    pdf_ok = slug in PDFS and (ROOT / PDFS[slug][0]).exists()
+    if pdf_ok:
+        digest = sha256(ROOT / PDFS[slug][0])
+        rows.append((
+            "SHA-256 of PDF",
+            f'<code class="hash">{digest}</code> '
+            f'<button type="button" class="check" data-url="{PDFS[slug][1]}" data-sha="{digest}">Check this PDF</button>'
+            '<span class="check-out" role="status"></span>',
+        ))
+    dl = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows)
+    return (
+        '<section class="print" aria-label="Document fingerprint">'
+        f"<dl>{dl}</dl>"
+        '<p class="small">A checksum shows that your copy matches this build. It is not a signature, '
+        "and it does not show who made the build.</p></section>"
+    )
+
+
 def cite_box(title: str) -> str:
     byline = ", ".join(AUTHORS)
     return f"""<aside class="cite" id="cite">
@@ -146,90 +299,135 @@ def cite_box(title: str) -> str:
 <details><summary>BibTeX</summary><pre><code>{html.escape(bibtex(title))}</code></pre></details>
 <p class="small">This is a draft and it changes. Cite the revision you read, and see
 <a href="{REPO_URL}/commits/main/paper">the history on GitHub</a> for what changed between revisions.</p>
-</aside>
-"""
+</aside>"""
 
 
-def run_pandoc(src: Path, out: Path, title: str, slug: str) -> None:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    first = next((ln for ln in src.read_text(encoding="utf-8").splitlines() if ln.strip()), "")
-    # A document without its own H1 gets the title as a visible heading instead.
-    heading = [] if first.startswith("# ") else ["--metadata", f"title={title}"]
-    is_paper = slug == PAPER["slug"]
-    head = (SITE / "head.html").read_text(encoding="utf-8")
-    head += social_meta(title, SUMMARY, f"{SITE_URL}/{slug}/") + "\n"
-    nav = '<p class="back"><a href="../">&larr; Mergit Research</a>'
-    after = ""
-    if is_paper:
-        head += scholar_meta(title) + "\n"
-        pdf = PDFS[slug][1]
-        nav += f' &middot; <a href="{pdf}">PDF</a> &middot; <a href="#cite">Cite</a>'
-        after = cite_box(title)
-    nav += "</p>\n"
+def build_document(slug: str, rel: str, fallback_title: str, kind: str) -> None:
+    src = ROOT / rel
+    text = src.read_text(encoding="utf-8")
+    paper_style = slug in ("paper", "whitepaper")
+    title, subtitle, note_md, body_md = split_head(text, fallback_title) if paper_style else (
+        fallback_title, "", "", re.sub(r"\A# [^\n]*\n+", "", text)
+    )
+
     with tempfile.TemporaryDirectory() as tmp:
-        head_f, nav_f, after_f = (Path(tmp) / n for n in ("head.html", "nav.html", "after.html"))
-        head_f.write_text(head, encoding="utf-8")
-        nav_f.write_text(nav, encoding="utf-8")
-        after_f.write_text(after, encoding="utf-8")
-        cmd = [
-            "pandoc", str(src),
-            # Dollar signs in the text are prices ("$2"), not TeX math.
-            "-f", "markdown-tex_math_dollars",
-            "-t", "html5", "-s",
-            "--toc", "--toc-depth=2",
-            "--css", "../style.css",
-            "-V", "document-css=false",
-            "-V", "lang=en",
-            # pagetitle sets <title> only; the documents carry their own H1.
-            "--metadata", f"pagetitle={title}",
-            "--resource-path", str(src.parent),
-            *heading,
-            "-H", str(head_f),
-            "-B", str(nav_f),
-            "-A", str(after_f),
-            "-o", str(out),
-        ]
-        subprocess.run(cmd, check=True)
+        body_file = Path(tmp) / "body.md"
+        body_file.write_text(body_md, encoding="utf-8")
+        toc, body = pandoc_fragment(body_file, src.parent)
+
+    note = ""
+    if note_md:
+        note = (
+            '<details class="note"><summary>About this revision</summary>'
+            f"{pandoc_inline(note_md)}</details>"
+        )
+
+    is_paper = slug == PAPER["slug"]
+    actions = []
+    if slug in PDFS and (ROOT / PDFS[slug][0]).exists():
+        actions.append(f'<a class="btn primary" href="{PDFS[slug][1]}">Download PDF</a>')
+    if is_paper:
+        actions.append('<a class="btn" href="#cite">Cite</a>')
+    actions.append(f'<a class="btn" href="{REPO_URL}/blob/main/{attr(rel)}">View source</a>')
+
+    byline = ""
+    if paper_style:
+        byline = f'<p class="byline">{html.escape(", ".join(AUTHORS))}</p>'
+    sub = f'<p class="subtitle">{html.escape(subtitle)}</p>' if subtitle else ""
+    long_title = " long" if len(title) > 70 else ""
+
+    extra = scholar_meta(title) if is_paper else ""
+    head = head_html(f"{title} | Mergit Research", SUMMARY, f"{SITE_URL}/{slug}/", "../", extra)
+    page = f"""<!doctype html>
+<html lang="en">
+<head>
+{head}
+</head>
+<body class="doc doc-{slug}">
+<a class="skip" href="#content">Skip to the text</a>
+{header_html("../", "")}
+<div class="shell">
+<aside class="rail" aria-label="Contents">
+<details class="toc" open><summary>Contents</summary>
+{toc}
+</details>
+</aside>
+<main class="paper">
+<header class="titleblock">
+<p class="kind">{html.escape(kind)}</p>
+<h1 class="title{long_title}">{html.escape(title)}</h1>
+{sub}
+{byline}
+<p class="actions">{"".join(actions)}</p>
+{fingerprint_html(slug, rel, src)}
+{note}
+</header>
+<article id="content">
+{body}
+</article>
+{cite_box(title) if is_paper else ""}
+</main>
+</div>
+{footer_html()}
+<script src="../toc.js" defer></script>
+</body>
+</html>
+"""
+    out = DIST / slug / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+
+
+def build_tool(slug: str, title: str) -> None:
+    """Copy a tool folder and wrap its page in the shared shell."""
+    shutil.copytree(SITE / slug, DIST / slug, ignore=shutil.ignore_patterns("test.js"))
+    path = DIST / slug / "index.html"
+    page = path.read_text(encoding="utf-8")
+    desc = next(t[3] for t in TOOLS if t[0] == slug)
+    page = page.replace("<!--HEAD-->", head_html(f"{title} | Mergit Research", desc, f"{SITE_URL}/{slug}/", "../"))
+    page = page.replace("<!--HEADER-->", header_html("../", slug))
+    page = page.replace("<!--FOOTER-->", footer_html())
+    path.write_text(page, encoding="utf-8")
 
 
 def index_html() -> str:
-    items = []
-    for slug, title, blurb in TOOLS:
-        items.append(
-            f'<li><a class="doc" href="{slug}/">{html.escape(title)}</a>'
-            f'<span class="tag">Interactive</span><p>{html.escape(blurb)}</p></li>'
+    rows = []
+    for slug, title, kind, blurb in TOOLS:
+        rows.append(
+            f'<li><p class="kind">{html.escape(kind)}</p>'
+            f'<a class="doc" href="{slug}/">{html.escape(title)}</a><p>{html.escape(blurb)}</p></li>'
         )
-    for slug, _src, title, blurb in DOCS:
+    for slug, _src, title, kind, blurb in DOCS:
         extra = ""
         if slug in PDFS and (ROOT / PDFS[slug][0]).exists():
-            extra = f' <a class="pdf" href="{slug}/{PDFS[slug][1]}">{html.escape(PDFS[slug][2])}</a>'
-        items.append(
-            f'<li><a class="doc" href="{slug}/">{html.escape(title)}</a>'
-            f"<p>{html.escape(blurb)}{extra}</p></li>"
+            extra = f' <a class="pdf" href="{slug}/{PDFS[slug][1]}">PDF</a>'
+        rows.append(
+            f'<li><p class="kind">{html.escape(kind)}</p>'
+            f'<a class="doc" href="{slug}/">{html.escape(title)}</a><p>{html.escape(blurb)}{extra}</p></li>'
         )
+    head = head_html("Mergit Research", SUMMARY, SITE_URL + "/", "")
     return f"""<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-{social_meta("Mergit Research", SUMMARY, SITE_URL + "/")}
-<title>Mergit Research</title>
-<link rel="stylesheet" href="style.css">
+{head}
 </head>
 <body class="index">
-<main>
+{header_html("", "index")}
+<main class="home">
 <h1>Mergit Research</h1>
-<p class="lead">Pay for what you got. A trust and settlement layer for autonomous agent work.</p>
+<p class="lead">Pay for what you got. A trust and settlement layer for autonomous agent work: the paper, the argument, and the numbers behind it.</p>
 <p class="status">{html.escape(STATUS)}</p>
 <ul class="docs">
-{chr(10).join(items)}
+{chr(10).join(rows)}
 </ul>
-<p class="foot"><a href="{REPO_URL}">Source and history on GitHub</a></p>
 </main>
+{footer_html()}
 </body>
 </html>
 """
 
+
+# --------------------------------------------------------------------------- main
 
 def main() -> int:
     if shutil.which("pandoc") is None:
@@ -238,14 +436,17 @@ def main() -> int:
     if DIST.exists():
         shutil.rmtree(DIST)
     DIST.mkdir(parents=True)
-    shutil.copy(SITE / "style.css", DIST / "style.css")
 
-    for slug, rel, title, _ in DOCS:
-        src = ROOT / rel
-        if not src.exists():
+    for name in ("style.css", "toc.js"):
+        shutil.copy(SITE / name, DIST / name)
+    shutil.copytree(SITE / "fonts", DIST / "fonts")
+    shutil.copytree(SITE / "brand", DIST / "brand")
+
+    for slug, rel, title, kind, _ in DOCS:
+        if not (ROOT / rel).exists():
             print(f"missing source: {rel}", file=sys.stderr)
             return 1
-        run_pandoc(src, DIST / slug / "index.html", title, slug)
+        build_document(slug, rel, title, kind)
         print(f"built {slug}")
 
     figures = ROOT / "paper" / "figures"
@@ -257,20 +458,18 @@ def main() -> int:
                 shutil.copy(f, dest / f.name)
 
     for slug, (rel, name, _) in PDFS.items():
-        src = ROOT / rel
-        if src.exists():
-            shutil.copy(src, DIST / slug / name)
+        if (ROOT / rel).exists():
+            shutil.copy(ROOT / rel, DIST / slug / name)
 
-    for slug, _title, _blurb in TOOLS:
-        # test.js stays in the repo; it is a check, not part of the site.
-        shutil.copytree(SITE / slug, DIST / slug, ignore=shutil.ignore_patterns("test.js"))
-        print(f"copied {slug}")
+    for slug, title, _kind, _blurb in TOOLS:
+        build_tool(slug, title)
+        print(f"built {slug}")
 
     (DIST / "index.html").write_text(index_html(), encoding="utf-8")
     (DIST / ".nojekyll").write_text("", encoding="utf-8")
 
     # Crawlers: allow everything, and list every page once.
-    pages = [""] + [f"{slug}/" for slug, *_ in DOCS] + [f"{slug}/" for slug, *_ in TOOLS]
+    pages = [""] + [f"{d[0]}/" for d in DOCS] + [f"{t[0]}/" for t in TOOLS]
     urls = "\n".join(f"  <url><loc>{SITE_URL}/{p}</loc></url>" for p in pages)
     (DIST / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'

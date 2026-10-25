@@ -2,6 +2,8 @@
 
 Yash Virulkar
 
+Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 **A trust and settlement layer for autonomous agent work**
 
 Whitepaper, draft 1 — 2026-10-09. Condensed from the full paper (`paper/draft-v1.md`), which
