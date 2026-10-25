@@ -18,6 +18,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import widgets  # noqa: E402  (site/widgets.py)
+
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 DIST = SITE / "dist"
@@ -82,6 +85,7 @@ PDFS = {"paper": ("build/draft-v1-r5.pdf", "mergit-paper-r5.pdf", "PDF")}
 PAPER = {
     "slug": "paper",
     "version": "Draft 1, revision 5",
+    "rev": "draft-1-r5",
     "date": "2026-10-24",
     "bibkey": "virulkar2026payforwhatyougot",
 }
@@ -177,33 +181,56 @@ def head_html(title: str, description: str, url: str, root: str, extra: str = ""
 <link rel="apple-touch-icon" href="{root}brand/apple-touch-icon.png">
 <link rel="preload" href="{root}fonts/onest-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{root}fonts/literata-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{root}style.css">"""
+<script>try{{var t=localStorage.getItem("mergit-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}}catch(e){{}}</script>
+<link rel="stylesheet" href="{root}style.css">
+<link rel="stylesheet" href="{root}explore.css">"""
 
 
-def header_html(root: str, here: str = "") -> str:
+THEME_BUTTON = (
+    '<button type="button" class="theme" aria-label="Switch theme" title="Switch theme">'
+    '<svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a.6.6 0 0 0-.8-.7 9.5 9.5 0 1 0 12.2 12.2.6.6 0 0 0-.7-.8Z"/></svg>'
+    '<svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/>'
+    '<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></g></svg>'
+    "</button>"
+)
+
+
+def header_html(root: str, here: str = "", doc: bool = False) -> str:
     def link(label: str, href: str, key: str) -> str:
         cur = ' aria-current="page"' if key == here else ""
         return f'<a href="{href}"{cur}>{label}</a>'
 
+    pill = (
+        '<div class="pill" aria-hidden="true"><span class="pill-title">Abstract</span>'
+        '<span class="pill-sep"></span><span class="pill-time"></span>'
+        '<span class="pill-sep"></span><span class="pill-count"></span></div>'
+        if doc
+        else ""
+    )
+    progress = '<div class="progress" aria-hidden="true"><i></i></div>' if doc else ""
     return f"""<header class="bar">
 <div class="bar-in">
 <a class="brand" href="{root or './'}">{logo_svg()}<span>Mergit Research</span></a>
+{pill}
 <nav aria-label="Site">
 {link("Papers", root or "./", "index")}
 {link("Calculator", root + "calculator/", "calculator")}
 <a href="{REPO_URL}">GitHub</a>
+{THEME_BUTTON}
 </nav>
 </div>
+{progress}
 </header>"""
 
 
-def footer_html() -> str:
+def footer_html(root: str = "") -> str:
     return f"""<footer class="foot">
 <div class="foot-in">
 <p>Text and figures are licensed under <a href="{LICENCE[1]}">{LICENCE[0]}</a>. The Mergit name and logo are not.</p>
 <p><a href="{REPO_URL}">Source and history</a>. Pre-implementation: nothing here has been measured.</p>
 </div>
-</footer>"""
+</footer>
+<script src="{root}js/theme.js" defer></script>"""
 
 
 # --------------------------------------------------------------------------- documents
@@ -302,6 +329,9 @@ def cite_box(title: str) -> str:
 </aside>"""
 
 
+PAGES: dict = {}
+
+
 def build_document(slug: str, rel: str, fallback_title: str, kind: str) -> None:
     src = ROOT / rel
     text = src.read_text(encoding="utf-8")
@@ -336,6 +366,27 @@ def build_document(slug: str, rel: str, fallback_title: str, kind: str) -> None:
     sub = f'<p class="subtitle">{html.escape(subtitle)}</p>' if subtitle else ""
     long_title = " long" if len(title) > 70 else ""
 
+    if is_paper:
+        body = widgets.inject_paper_widgets(body)
+        body = widgets.live_lifecycle(body, (ROOT / "paper" / "figures" / "fig_lifecycle.svg").read_text(encoding="utf-8"))
+        PAGES["paper_body"] = body
+    scripts = [
+        "../js/common.js",
+        *(
+            ["../calculator/core.js", "../js/receipt.js", "../js/audit.js", "../js/density.js", "../js/routing.js", "../js/lifecycle.js"]
+            if is_paper
+            else []
+        ),
+        "../js/reading.js",
+        "../toc.js",
+    ]
+    script_tags = "\n".join(f'<script src="{src}" defer></script>' for src in scripts)
+    dock = (
+        '<div class="dock" aria-label="Reading tools">'
+        '<button type="button" data-act="focus" aria-pressed="false" title="Focus mode (f)">Focus</button>'
+        '<button type="button" data-act="keys" title="Keyboard shortcuts (?)">Keys</button></div>'
+    )
+
     extra = scholar_meta(title) if is_paper else ""
     head = head_html(f"{title} | Mergit Research", SUMMARY, f"{SITE_URL}/{slug}/", "../", extra)
     page = f"""<!doctype html>
@@ -343,9 +394,9 @@ def build_document(slug: str, rel: str, fallback_title: str, kind: str) -> None:
 <head>
 {head}
 </head>
-<body class="doc doc-{slug}">
+<body class="doc doc-{slug}" data-slug="{slug}" data-rev="{PAPER["rev"]}">
 <a class="skip" href="#content">Skip to the text</a>
-{header_html("../", "")}
+{header_html("../", "", doc=True)}
 <div class="shell">
 <aside class="rail" aria-label="Contents">
 <details class="toc" open><summary>Contents</summary>
@@ -368,8 +419,9 @@ def build_document(slug: str, rel: str, fallback_title: str, kind: str) -> None:
 {cite_box(title) if is_paper else ""}
 </main>
 </div>
-{footer_html()}
-<script src="../toc.js" defer></script>
+{dock}
+{footer_html("../")}
+{script_tags}
 </body>
 </html>
 """
@@ -386,7 +438,7 @@ def build_tool(slug: str, title: str) -> None:
     desc = next(t[3] for t in TOOLS if t[0] == slug)
     page = page.replace("<!--HEAD-->", head_html(f"{title} | Mergit Research", desc, f"{SITE_URL}/{slug}/", "../"))
     page = page.replace("<!--HEADER-->", header_html("../", slug))
-    page = page.replace("<!--FOOTER-->", footer_html())
+    page = page.replace("<!--FOOTER-->", footer_html("../"))
     path.write_text(page, encoding="utf-8")
 
 
@@ -406,22 +458,29 @@ def index_html() -> str:
             f'<a class="doc" href="{slug}/">{html.escape(title)}</a><p>{html.escape(blurb)}{extra}</p></li>'
         )
     head = head_html("Mergit Research", SUMMARY, SITE_URL + "/", "")
+    chaps = widgets.chapters(PAGES.get("paper_body", ""))
     return f"""<!doctype html>
 <html lang="en">
 <head>
 {head}
 </head>
-<body class="index">
+<body class="index" data-rev="{PAPER["rev"]}">
 {header_html("", "index")}
-<main class="home">
-<h1>Mergit Research</h1>
-<p class="lead">Pay for what you got. A trust and settlement layer for autonomous agent work: the paper, the argument, and the numbers behind it.</p>
+<main>
+{widgets.hero_html()}
+<div class="home">
 <p class="status">{html.escape(STATUS)}</p>
+{widgets.chapter_strip(chaps) if chaps else ""}
+<h2 class="home-h">Everything else</h2>
 <ul class="docs">
 {chr(10).join(rows)}
 </ul>
+</div>
 </main>
 {footer_html()}
+<script src="js/common.js" defer></script>
+<script src="js/receipt.js" defer></script>
+<script src="js/home.js" defer></script>
 </body>
 </html>
 """
@@ -437,8 +496,9 @@ def main() -> int:
         shutil.rmtree(DIST)
     DIST.mkdir(parents=True)
 
-    for name in ("style.css", "toc.js"):
+    for name in ("style.css", "explore.css", "toc.js"):
         shutil.copy(SITE / name, DIST / name)
+    shutil.copytree(SITE / "js", DIST / "js")
     shutil.copytree(SITE / "fonts", DIST / "fonts")
     shutil.copytree(SITE / "brand", DIST / "brand")
 

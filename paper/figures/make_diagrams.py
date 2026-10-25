@@ -87,6 +87,10 @@ class Svg:
             f'marker-end="url(#head)" stroke-linejoin="round"/>'
         )
 
+    def wrap(self, start: int, attrs: str) -> None:
+        """Wrap everything drawn since `start` in <g attrs>, so a script can address it."""
+        self.parts[start:] = [f"<g {attrs}>" + "".join(self.parts[start:]) + "</g>"]
+
     def render(self) -> str:
         defs = (
             '<defs><marker id="head" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" '
@@ -128,7 +132,8 @@ def lifecycle() -> Svg:
         if sub:
             s.text(cx[i], TOP + 36 + 7 * len(sub), sub, size=10, color=MUTED, italic=True, lh=12.5)
 
-    def msg(y, x1, x2, label, dashed=False):
+    def msg(y, x1, x2, label, dashed=False, st=None):
+        i0 = len(s.parts)
         s.arrow([(x1, y), (x2, y)], dashed=dashed)
         mx, ty = (x1 + x2) / 2, y - 10 - 6.5 * (len(label) - 1)
         # A pale halo keeps the label legible where it crosses a lane border.
@@ -136,28 +141,37 @@ def lifecycle() -> Svg:
         s.rect(mx - wide / 2, ty - 6.5 * len(label) - 1, wide, 13 * len(label) + 2, "#ffffff", "none", rx=3, sw=0)
         s.parts[-1] = s.parts[-1].replace('<rect ', '<rect fill-opacity="0.82" ', 1)
         s.text(mx, ty, label, size=10.5, lh=13)
+        if st:
+            s.wrap(i0, f'class="st" data-step="{st}"')
 
-    def step(y, x, lines, colors=WHITE, h=None):
+    def step(y, x, lines, colors=WHITE, h=None, st=None):
+        i0 = len(s.parts)
         s.box(x, y, 132, h or 14 + 13 * len(lines), lines, colors, size=10)
+        if st:
+            s.wrap(i0, f'class="st" data-step="{st}"')
 
-    msg(ys[0], R, O - 2, ["**1** Specify task", "Φ, budget, category"])
-    step(ys[1], O, ["**2** Route", "Thompson sampling on", "value density (human-", "in-the-loop by default)"])
-    msg(ys[2], O, C - 2, ["**3** Escrow V", "encumber stake S"])
+    msg(ys[0], R, O - 2, ["**1** Specify task", "Φ, budget, category"], st="1")
+    step(ys[1], O, ["**2** Route", "Thompson sampling on", "value density (human-", "in-the-loop by default)"], st="2")
+    msg(ys[2], O, C - 2, ["**3** Escrow V", "encumber stake S"], st="3")
+    i4 = len(s.parts)
     s.arrow([(C, ys[3]), (T - 65, ys[3])])
     step(ys[3], T, ["**4** Execute", "meter tokens and gas,", "hash-chain every step"], TEE)
-    step(ys[4], T, ["**5** Emit Verifiable", "Execution Receipt"], TEE)
-    msg(ys[5], T - 10, C + 2, ["**5** Commit Merkle root,", "terminal hash,", "attestation quote"])
-    msg(ys[5], T + 10, V - 2, ["receipt body:", "off-chain, encrypted"])
-    step(ys[6], V, ["**6** Audit, prob. p(a,k)", "attestation, commitment,", "evidence ⊨ Φ ?"])
-    msg(ys[7], V, C + 2, ["**7** Settle. Pass or no draw:", "release escrow. Fail: return", "escrow, slash on failure"])
-    msg(ys[8], C, R + 2, ["**7/8** Receive result;", "may challenge within window W"])
-    msg(ys[9], R, X - 2, ["**8** within W"], dashed=True)
-    msg(ys[10], X, C + 2, ["**8** Challenge → Level 2 disclosure", "→ adjudication → clawback"], dashed=True)
-    msg(ys[11], V, G - 2, ["**9** validated outcome", "+ metered cost"])
-    msg(ys[12], X, G - 2, ["proven falsification", "→ probation"], dashed=True)
-    msg(ys[13] - 14, G, O + 2, ["Update Beta(α,β) and Gamma(κ,τ) per (agent, category);", "posteriors feed routing"], dashed=True)
+    s.wrap(i4, 'class="st" data-step="4"')
+    step(ys[4], T, ["**5** Emit Verifiable", "Execution Receipt"], TEE, st="5")
+    msg(ys[5], T - 10, C + 2, ["**5** Commit Merkle root,", "terminal hash,", "attestation quote"], st="5")
+    msg(ys[5], T + 10, V - 2, ["receipt body:", "off-chain, encrypted"], st="5")
+    step(ys[6], V, ["**6** Audit, prob. p(a,k)", "attestation, commitment,", "evidence ⊨ Φ ?"], st="6")
+    msg(ys[7], V, C + 2, ["**7** Settle. Pass or no draw:", "release escrow. Fail: return", "escrow, slash on failure"], st="7")
+    msg(ys[8], C, R + 2, ["**7/8** Receive result;", "may challenge within window W"], st="7 8")
+    msg(ys[9], R, X - 2, ["**8** within W"], dashed=True, st="8")
+    msg(ys[10], X, C + 2, ["**8** Challenge → Level 2 disclosure", "→ adjudication → clawback"], dashed=True, st="8")
+    msg(ys[11], V, G - 2, ["**9** validated outcome", "+ metered cost"], st="9")
+    msg(ys[12], X, G - 2, ["proven falsification", "→ probation"], dashed=True, st="8 9")
+    msg(ys[13] - 14, G, O + 2, ["Update Beta(α,β) and Gamma(κ,τ) per (agent, category);", "posteriors feed routing"], dashed=True, st="9")
+    i9 = len(s.parts)
     s.arrow([(G, ys[13] + 24), (V + 2, ys[13] + 24)], dashed=True)
     s.text((G + V) / 2, ys[13] + 24 - 11, ["θ_{LCB} sets p"], size=10.5)
+    s.wrap(i9, 'class="st" data-step="9"')
     return s
 
 
