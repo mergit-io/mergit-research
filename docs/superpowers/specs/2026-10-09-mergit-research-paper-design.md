@@ -157,6 +157,10 @@ requirement load-bearing in the payment path rather than decorative.
 
 ### 5.2 Deterrence condition
 
+> **Superseded.** The formulas below are the original brief's and are wrong (corrected 2026-10-09 in
+> research.md §H, and again 2026-10-24 after simulation: see paper §7.2, §7.5 and §7.7). The current
+> rule is `P_d·(V + λS) ≥ max(c_exec + (1 − θ)V, V)`, with a concurrency allowance sized jointly.
+
 Submitting a false receipt is irrational when expected penalty exceeds expected gain:
 
 ```

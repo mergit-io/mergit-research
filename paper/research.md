@@ -157,43 +157,47 @@ signal. Supports "credential reduces required stake" without having to invent th
 
 ## D. Mechanism design foundations
 
-**[18] Douceur (2002). "The Sybil Attack."** `TO VERIFY` (IPTPS 2002)
+**[18] Douceur (2002). "The Sybil Attack."** `VERIFIED 2026-10-24` (IPTPS 2002, LNCS 2429, pp. 251–260; doi:10.1007/3-540-45748-8_24)
+*Note:* covers multiple identities, not identity replacement; the whitewashing claim rests on [19].
 *Use:* canonical statement that cheap identity creation undermines reputation systems.
 
-**[19] Friedman & Resnick (2001). "The Social Cost of Cheap Pseudonyms."** `TO VERIFY`
-(J. Economics & Management Strategy)
+**[19] Friedman & Resnick (2001). "The Social Cost of Cheap Pseudonyms."** `VERIFIED 2026-10-24`
+(J. Economics & Management Strategy 10(2):173–199; doi:10.1111/j.1430-9134.2001.00173.x)
 *Use:* **best citation for the whitewashing argument** — formal treatment of why costless identity
 replacement forces distrust of newcomers. Directly motivates staking at registration and the
 cold-start posterior design.
 
-**[20] Kamvar, Schlosser & Garcia-Molina (2003). "EigenTrust."** `TO VERIFY` (WWW 2003)
+**[20] Kamvar, Schlosser & Garcia-Molina (2003). "EigenTrust."** `VERIFIED 2026-10-24` (WWW 2003, pp. 640–651; doi:10.1145/775152.775242)
+*Note:* bounds a rater's influence; it does not discount by counterparty diversity. Cite "in the spirit of".
 *Use:* prior art on reputation aggregation in decentralized networks.
 
-**[21] Becker (1968). "Crime and Punishment: An Economic Approach."** `TO VERIFY` (JPE)
+**[21] Becker (1968). "Crime and Punishment: An Economic Approach."** `VERIFIED 2026-10-24` (JPE 76(2):169–217; doi:10.1086/259394)
+*Note:* deterrence, not proof-of-stake slashing.
 *Use:* deterrence foundation — expected penalty (probability × severity) vs expected gain. Direct
 support for §5.2's deterrence condition.
 
-**[22] Avenhaus, von Stengel & Zamir. "Inspection Games."** `TO VERIFY`
-(Handbook of Game Theory, Vol. 3)
+**[22] Avenhaus, von Stengel & Zamir (2002). "Inspection Games."** `VERIFIED 2026-10-24`
+(Handbook of Game Theory with Economic Applications, Vol. 3, ch. 51, pp. 1947–1987; doi:10.1016/S1574-0005(02)03014-X)
 *Use:* the formal game class Mergit's audit mechanism belongs to. Important for framing §5.2 as an
 instance of a known game rather than an ad-hoc rule.
 
-**[23] Teutsch & Reitwießner (2017). "A scalable verification solution for blockchains" (Truebit).**
-`TO VERIFY`
-*Use:* **key precedent.** Verification game with sampled challenges and forced errors for
+**[23] Teutsch & Reitwießner. "A Scalable Verification Solution for Blockchains" (Truebit).**
+`VERIFIED 2026-10-24` (arXiv:1908.04756, 2019; whitepaper 2017; preprint, not peer-reviewed)
+*Use:* **key precedent.** Verification game with forced errors (not sampled challenge) for
 off-chain computation — the established design pattern Mergit's sampled-audit model extends from
 deterministic computation to agent execution.
 
-**[24] Kalodner et al. (2018). "Arbitrum: Scalable, Private Smart Contracts."** `TO VERIFY`
-(USENIX Security)
+**[24] Kalodner et al. (2018). "Arbitrum: Scalable, Private Smart Contracts."** `VERIFIED 2026-10-24`
+(USENIX Security 2018, pp. 1353–1370)
+*Note:* a challenge/bisection protocol, not an optimistic-rollup paper; cite it for bisection to one on-chain step.
 *Use:* fraud-proof / dispute-window precedent for optimistic acceptance with challenge.
 
-**[25] Thompson (1933).** `TO VERIFY`
+**[25] Thompson (1933).** `VERIFIED 2026-10-24` (Biometrika 25(3/4):285–294; doi:10.1093/biomet/25.3-4.285)
 **[26] Agrawal & Goyal (2012). "Analysis of Thompson Sampling for the Multi-armed Bandit Problem."**
-`TO VERIFY` (COLT)
+`VERIFIED 2026-10-24` (COLT 2012, PMLR 23:39.1–39.26)
 *Use:* routing policy foundation and regret results — **cited, not re-proven** (design brief §5.5).
 
-**[27] Badanidiyuru, Kleinberg & Slivkins (2013). "Bandits with Knapsacks."** `TO VERIFY` (FOCS)
+**[27] Badanidiyuru, Kleinberg & Slivkins (2013). "Bandits with Knapsacks."** `VERIFIED 2026-10-24` (FOCS 2013, pp. 207–216, doi:10.1109/FOCS.2013.30; JACM 65(3), 2018, doi:10.1145/3164539)
 *Use:* the budget-constrained bandit formalism C3 adapts. Regret behavior under budget constraints
 is cited from here.
 
@@ -201,19 +205,20 @@ is cited from here.
 
 ## E. Trusted execution
 
-**[28] Costan & Devadas. "Intel SGX Explained."** `TO VERIFY`
+**[28] Costan & Devadas. "Intel SGX Explained."** `VERIFIED 2026-10-24` (IACR ePrint 2016/086)
+*Note:* a 2016 explainer; it predates most real attacks, so the attack claims rest on [29a–d].
 *Use:* TEE attestation mechanics for the runtime trust anchor (decision 15).
 
-**[29] SGX side-channel / microarchitectural attack literature** — Foreshadow, SGAxe, Plundervolt
-class. `TO VERIFY` (individual papers to be selected)
-*Use:* **required honesty citation.** The paper must acknowledge TEE compromise as a live threat
-rather than asserting hardware integrity. Also needed: AWS Nitro Enclaves documentation for a
-production-attestation example.
+**[29a–d] Attacks on production TEEs.** `VERIFIED 2026-10-24`
+- [29a] Van Bulck et al., *Foreshadow*, USENIX Security 2018, pp. 991–1008.
+- [29b] Murdock et al., *Plundervolt*, IEEE S&P 2020, pp. 1466–1482, doi:10.1109/SP40000.2020.00057.
+- [29c] De Meulemeester et al., *BadRAM*, IEEE S&P 2025, pp. 4117–4135, doi:10.1109/SP61157.2025.00104 (breaks SEV-SNP attestation).
+- [29d] De Meulemeester et al., *Battering RAM*, IEEE S&P 2026, pp. 4391–4407, doi:10.1109/SP63933.2026.00052 (interposer under $50; breaks SEV-SNP attestation; physical-access threat model).
+*Use:* **required honesty citation** for threat A5. Still open: AWS Nitro Enclaves documentation as a production-attestation example.
 
-**[zkML] Practicality of zero-knowledge ML proofs at LLM inference scale.** `TO VERIFY` — specific
-survey still to be selected.
-*Use:* justify why proof-based verification is future work rather than the v1 design. **Do not
-assert infeasibility without a citation.**
+**[41] Sun, Li & Zhang (2024). "zkLLM."** `VERIFIED 2026-10-24` (ACM CCS 2024, pp. 4405–4419; doi:10.1145/3658644.3670334)
+**[42] Peng et al. (2026). "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning."** `VERIFIED 2026-10-24` (Artificial Intelligence Review 59, art. 157; arXiv:2502.18535)
+*Use:* proof-based verification is expensive rather than impossible (13B-parameter inference in under 15 minutes); the stronger obstacle is that inference proofs do not cover tool calls and side effects.
 
 ---
 
@@ -233,10 +238,8 @@ guides.
 measurement** — these are vendor/blog figures and overclaiming them would be the easiest thing in
 the paper to attack.
 
-**[30] RouteLLM** (model routing with preference data). `TO VERIFY` — title correct, arXiv ID to
-confirm.
-**[31] LLMLingua** (prompt compression, Microsoft). `TO VERIFY` — title correct, arXiv ID to
-confirm.
+**[30] Ong et al. "RouteLLM: Learning to Route LLMs from Preference Data."** `VERIFIED 2026-10-24` (ICLR 2025; arXiv:2406.18665; reports >2x cost reduction)
+**[31] Jiang et al. "LLMLingua."** `VERIFIED 2026-10-24` (EMNLP 2023, pp. 13358–13376; arXiv:2310.05736; up to 20x compression)
 *Use:* peer-reviewed anchors for the routing and compression claims, replacing reliance on [32]
 wherever a primary source is available.
 
@@ -403,10 +406,10 @@ this literature will otherwise reject on prior art alone.
 
 ## G. Research gaps still open
 
-- [ ] Primary peer-reviewed source for zkML cost at LLM scale.
-- [ ] Specific SGX/TEE attack papers to cite (pick 2–3 representative, current ones).
-- [ ] Confirm arXiv IDs for RouteLLM and LLMLingua.
-- [ ] Confirm all `TO VERIFY` venues/years in §D and §E.
+- [x] **CLOSED (2026-10-24).** zkML: [41] zkLLM (CCS 2024) and [42] survey.
+- [x] **CLOSED (2026-10-24).** [29a–d]: Foreshadow, Plundervolt, BadRAM, Battering RAM.
+- [x] **CLOSED (2026-10-24).** RouteLLM arXiv:2406.18665; LLMLingua arXiv:2310.05736.
+- [x] **CLOSED (2026-10-24).** All `TO VERIFY` entries confirmed against DOI/publisher/arXiv records; 0 remain.
 - [x] **CLOSED (2026-10-09, negative result).** Checked whether existing work formalizes *stake
       substituting for verification compute*. It does — see §F2 [34]. The result is prior art;
       novelty claims reframed accordingly.
@@ -418,11 +421,11 @@ this literature will otherwise reject on prior art alone.
       7.4, 7.5, 7.6 rewritten, plus §1.5, §10.4, §11.5, §13, §14 and the whitepaper.
 - [ ] Re-derive §7.6's deviation argument inside [34]'s formalism, with recoverable collateral less
       than `λS` under restaking. Carried in §14.
-- [ ] Choose the `θ_LCB` quantile in §7.5(i) by optimizing audit cost against deterrence margin,
-      rather than by convention. Carried in §14.
+- [~] **PARTLY CLOSED (2026-10-24).** `θ_LCB` quantile set to 0.01 by simulation (§7.7), against the earlier
+      rate; to be rechecked against the corrected rate, and ideally set from the cost of a missed falsification.
 - [ ] Re-check whether anything in [34]'s §5.3 (reputation-weighted slashing) or Lemma 4
       (whitewashing) should further constrain our registration-stake parameterization in §8.6.
-- [ ] Read [14] (SoK on agentic commerce security) in full before drafting §12, to position
+- [ ] Read [14] (SoK on agentic commerce security) in full before the public version; positioned against its taxonomy rather than duplicated (open), to position
       against its taxonomy rather than duplicate it.
 
 ---
@@ -501,3 +504,144 @@ dependencies: recoverable collateral assumed `= λS`, which **restaking undercut
 specifically about restaking, so this is the weakest joint; `P_d` depends on a challenger population
 the protocol does not enforce; adjudication rests on evidence rather than recomputation, so both
 `θ`-estimates and falsification findings carry noise absent from the deterministic setting.
+
+---
+
+## I. Publishing research and new sources (2026-10-10)
+
+### I.1 [40] and the three papers it points to (read in full 2026-10-24)
+
+**[40] "SoK: Blockchain Agent-to-Agent Payments"** (arXiv 2604.03733, q-fin.GN) — `READ IN FULL`.
+A short SoK with no mechanism or evaluation. Names "financial finality does not establish
+fulfillment", payment–service decoupling and limited accountability as open; proposes a "shared
+append-only execution record" as a direction. Does not cover escrow, slashing, re-execution,
+revocable settlement, cost as a trust signal, or routing.
+
+Three papers it cites overlap the novelty claims; all `READ IN FULL`:
+- **[43] A402** (arXiv 2603.01179v2): TEE-assisted adaptor signatures bind payment to attested
+  execution of a *single* service call; TEE fully trusted; no stake or audit; payment final.
+- **[44] Acharya / TIVA** (arXiv 2511.15712): authenticity and intent of an agent's *payment*
+  (DIDs, intent proofs, ZK compliance, optional TEE code attestation); does not verify the work.
+- **[45] Insured Agents** (arXiv 2512.08737, submitted to AAMAS 2026): insurer agents post slashable
+  stake and get TEE audit access; one-shot equilibrium; verification an errorless oracle; credits
+  future business in deterrence. Closest in spirit; hence "insured exploratory draws" was renamed
+  "subsidized" and the "insurance fund" renamed "residual-loss reserve" in the paper.
+
+Effect on claims: C1 (cost-adjusted reputation) and C4 (routing) untouched; C2 narrowed to
+multi-step, side-effecting trajectories; C3 gains a contrast with [45]; C5 narrowed to clawback
+bounded by encumbered stake. Nothing dropped.
+
+**ERC-8004 [1]** (checked 2026-10-24; status Draft): names stake-secured re-execution, zkML verifiers
+and TEE oracles as validator models, and leaves "incentives and slashing related to validation" to the
+validation protocol. The paper's "registry without a runtime" framing stands but is stated precisely.
+
+### I.2 Reference fix (resolved)
+
+**[23] Truebit** — arXiv 1908.04756 (located by search). † status downgraded to "confirm against
+record"; was previously venue-less.
+
+### I.3 Policy change that reclassifies citation hygiene as risk
+
+arXiv began issuing **one-year submission bans in May 2026** for *unchecked* AI-generated content —
+hallucinated references and leftover chatbot prose specifically. AI assistance is permitted; the
+author is accountable for every line and every citation. Consequence for this paper: the 14
+† citations were not a polish item but a precondition for posting anything; all are now verified (0 remain). The paper's
+own rule ("nothing unresolvable stays in") is now also arXiv's rule, with teeth. Venue policies on
+AI disclosure remain under-specified; the norm is a brief disclosure of substantial assistance.
+
+### I.4 Venues (as of 2026-10-10)
+
+| Venue | Fit | Format | Status |
+|---|---|---|---|
+| **FC'27** (Financial Cryptography) | Best scope fit: incentive design, game theory for blockchain, smart contracts | LNCS; 15 pp regular, 8 pp short, 20 pp SoK; anonymized; **arXiv preprints explicitly permitted** | Deadline 24 Sep 2026 **passed**. Target **FC'28** (~Sep 2027) or an FC'27 workshop (CFPs typically Nov–Dec 2026) |
+| **AFT 2027** | Closest culturally — mechanism design + verifiable computation; LIPIcs; proof-based papers accepted | ~May–June 2027 deadline historically | CFP not yet posted; watch aft.ifca.ai |
+| **AAMAS 2027 Blue Sky Ideas** | The one track that explicitly wants vision / no-results work | **4 pp + refs, deadline 12 Nov 2026**; needs a "why Blue Sky" rationale and author track record | Open — nearest stake in the ground |
+| **AGENT 2027 @ ICSE** | Verification, accountability, governance of agentic systems (not economics) | **5 pp incl. refs, deadline 13 Nov 2026**; single-anonymous; IEEE | Open |
+| ACM EC 2027 | Theory-heavy; would expect formal results | ~Feb 2027 pattern | CFP not posted |
+| S&P / NDSS / ASIACCS / CCS 2027 | Would demand real evaluation | arXiv preprints tolerated | Not yet appropriate |
+| CESC, SBC | Good talk venues, non-archival (SBC accepts already-submitted work) | — | Visibility, not publication credit |
+
+### I.5 arXiv process
+
+- **Endorsement policy changed 21 Jan 2026**: institutional email alone no longer suffices;
+  automatic endorsement needs institutional email *and* prior claimed authorship in the domain.
+  Otherwise: personal endorsement from an active author in the category — an advisor or faculty
+  member is the standard route. **Start this now; it is the gating step.**
+- Category: **cs.CR primary** (attestation / slashing / verification is security framing; [34] and
+  [36] live there), cross-list **cs.GT** and **cs.MA**. cs.DC is a poor fit.
+- License: arXiv default non-exclusive is fine for later venue submission; CC BY 4.0 only if open
+  reuse is wanted.
+- Preprint-then-submit is the field norm; FC and S&P say so explicitly.
+
+### I.6 What reviewers expect without an implementation
+
+USENIX's guidance: design-only papers "face skepticism" unless the idea is obviously strong and
+there is "initial experience in the closing sections." Top rejection reason is a system "isomorphic
+to well-known predecessors" — exactly the risk [34]/[36] posed, and why the differentiation work
+mattered. Analytical-only *is* publishable at FC/AFT when the contribution is a mechanism with
+formal properties.
+
+Precedents: Truebit was a whitepaper, never peer-reviewed; Arbitrum went to USENIX Security 2018
+*with* a prototype; the ERC-8004 study [2] is empirical and arXiv-only.
+
+**Minimal evaluation that moves Mergit from vision to research:**
+(a) **agent-based simulation of §7.5–7.6** — deviation profitability vs stake, concurrency, and
+`θ_LCB` quantile; show the volume attack succeeds without the concurrency cap and fails with it.
+Cheap, and sufficient for FC/AFT. Converts "argued" to "shown."
+(b) **a receipt-emitting harness prototype** on a few real repository tasks, measuring `c_audit`
+against `c_exec`. What security venues would want.
+
+### I.7 Craft guidance applied
+
+Peyton Jones: one idea per paper; contributions as refutable bullets; intuition before formalism;
+related work after the idea. USENIX: abstracts state assumptions and concrete results, not a table
+of contents. Applied 2026-10-10: abstract cut from ~430 to ~290 words; running example added
+(§2.2, threaded through §4.2, §6.2, §7.4); three figures specified (`paper/figures/`). Still open:
+compression from ~20k words to ~15 pp LNCS for an FC-class venue.
+
+### I.8 Recommended order
+
+1. Verify every † citation; read [40] in full. (Gating — see I.3.)
+2. Build the §7 simulation (I.6a). Cheapest step that changes the paper's category.
+3. Secure an arXiv endorser (I.5). Post to arXiv cs.CR once 1–2 are done.
+4. Submit a 4-page AAMAS Blue Sky (12 Nov 2026) or 5-page AGENT@ICSE short (13 Nov 2026) as a
+   stake in the ground, derived from the whitepaper.
+5. Compress to 15 pp LNCS for FC'28 or LIPIcs for AFT 2027, with the simulation as the evaluation
+   section.
+
+
+---
+
+## J. Verification log, 2026-10-24
+
+Method: each entry checked against Crossref, the publisher page or the arXiv record (DBLP was rate-limited).
+Result: **all 14 previously unverified entries are real; none was hallucinated.** Corrections:
+[22] gained year, chapter, pages and editors; [28] gained its report number; [30], [31] gained authors,
+IDs, venues. Claims the sources do not fully support, now reworded in the paper: [24] is not an
+optimistic-rollup paper; [21,22] cover deterrence, not proof-of-stake slashing; [20] does not discount by
+counterparty diversity; [18] does not cover identity replacement; zkML is expensive, not impossible
+([41] proves a 13B-parameter inference in under 15 minutes). Remaining gap: [1]–[17] and [32]–[39] were
+confirmed during the research phase and not re-checked in this pass.
+
+
+---
+
+## K. Simulation findings, 2026-10-24
+
+Code and data in `sim/` (agent-based model, five mechanisms M0–M4, six deviations, 400–2000 seeds per
+cell; nine unit checks reproduce the §7.4 table and the break-even concurrency). Result: **two claims of
+the previous revision failed** and are corrected in paper §7.2, §7.5, §7.6, with §7.7 reporting the run.
+
+1. **§7.5(ii) concurrency bound.** The slash is incurred only if at least one receipt is detected, so the
+   exact condition is `n(g − P_d·V) ≤ λS[1 − (1 − P_d)^n]`; at the paper's example the break-even is 18, not
+   30, and at the one-shot rate any `n ≥ 2` is profitable. Fix: size the audit rate jointly with a
+   per-operator allowance.
+2. **§7.2 fake-on-failure.** After a failed honest attempt `c_exec` is sunk, so forging needs
+   `P_d ≥ V/(V + λS)` whatever `θ` (0.0625 vs 0.034 at `S = $30`). Fix: `g(θ) = max(c_exec + (1 − θ)V, V)`.
+3. Probation at `p = 1` lifted the cap (fix: the allowance is a parameter, kept during probation).
+4. §8.2 needs: update the posterior from audited receipts only (else downward bias).
+
+Both mathematical failures were also checked by hand outside the simulation. The corrected mechanism
+(M4) shows no significantly profitable deviation in 108 cells; this is evidence about inequalities in the
+model, not about unmodelled attackers. Not re-run under the corrected rate: audit concentration (E4), the
+quantile table (E3). Residual risks: strategies are fixed, adjudication error-free, no restaking.

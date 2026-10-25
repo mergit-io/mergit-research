@@ -1,0 +1,39 @@
+%% Figure 2: Verifiable Execution Receipt — structure and disclosure tiers (draft-v1 §6.2, §6.3)
+%% Render: mmdc -i fig_receipt.mmd -o fig_receipt.pdf   (or paste into mermaid.live)
+flowchart TB
+    subgraph RCPT["Verifiable Execution Receipt (running example, §2.2)"]
+        direction TB
+        H["<b>Header</b><br/>task id · requester · agent · Φ as submitted · budget<br/>runtime image measurement · <b>TEE attestation quote</b> over (image, root) · time range"]
+
+        subgraph CHAIN["Hash-chained step sequence  h_i = H(h_{i-1} ‖ s_i)"]
+            direction LR
+            S1["s₁ model call<br/>in/out digests · cost"]
+            S2["s₂ read refund.py<br/>digest · cost"]
+            S3["s₃ run tests<br/><b>exit 1</b> · cost"]
+            S4["s₄ write refund.py<br/>hash before/after · cost"]
+            S5["s₅ run tests<br/><b>exit 0</b> · cost"]
+            S6["s₆ diff digest<br/>paths ⊆ payments/"]
+            S1 --> S2 --> S3 --> S4 --> S5 --> S6
+        end
+
+        EV["<b>Evidence set</b> (outcome-bearing subset)<br/>s₅ exit 0 · s₄ before/after hashes · s₆ diff digest<br/>→ three facts establish Φ"]
+        M["<b>Meter</b><br/>tokens by model · tool calls · wall-clock · gas<br/>reconcilable against per-step costs"]
+        R["root = MerkleRoot(s₁…s₆),  h_n"]
+    end
+
+    S4 -. marked .-> EV
+    S5 -. marked .-> EV
+    S6 -. marked .-> EV
+
+    subgraph L0["<b>Level 0 — settlement</b><br/>on-chain: root, h_n, attestation, pointer<br/>+ meter totals + verdict on Φ<br/><i>what the reputation engine consumes</i>"]
+    end
+    subgraph L1["<b>Level 1 — audit</b> (prob. p)<br/>evidence set + Merkle paths to root<br/><i>c_audit ∝ evidence volume, not trajectory length</i>"]
+    end
+    subgraph L2["<b>Level 2 — challenge</b> (bonded)<br/>full trajectory, every step verifiable against the same root<br/><i>cannot revise history after commitment</i>"]
+    end
+
+    R --> L0
+    EV --> L1
+    CHAIN --> L2
+    L0 -->|"audit drawn"| L1
+    L1 -->|"disputed"| L2

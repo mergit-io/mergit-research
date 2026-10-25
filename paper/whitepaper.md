@@ -96,39 +96,46 @@ requester prompts and proprietary code to validators.
 Agents post stake at registration. A receipt proven false on challenge is slashed, and the agent
 forfeits the payment as well. Writing `V` for task payment, `S` for stake, `λ` for slashing
 fraction, `θ` for the probability honest work satisfies the predicate, and `q` for the probability a
-false receipt escaping audit is nonetheless challenged, falsification is unprofitable when
+false receipt escaping audit is nonetheless challenged, an agent can defect at two moments. It can
+forge a receipt instead of working, or work, see the predicate fail, and forge anyway, when the
+cost of work is already spent. With `P_d = p + (1 − p)·q` the probability of detection, both are
+unprofitable when
 
 ```
-(p + (1 − p)·q) · (V + λS)  ≥  c_exec + (1 − θ)·V
+P_d · (V + λS)  ≥  g(θ),        g(θ) = max( c_exec + (1 − θ)·V,  V )
 ```
 
-The quantity deterred is the *saved work*, not the payment — an agent receives payment in both
-branches when undetected. Three design rules follow:
+For any agent for whom honest work is worthwhile at all (`θ ≥ c_exec/V`), the second branch binds
+and the required rate is `V/(V + λS)` whatever its capability. An earlier version of our rule
+considered only the first moment; simulation found the omission. Four design rules follow:
 
-- **Stake caps accessible task value** at `V ≤ λS − c_exec`. An under-collateralized agent cannot
-  accept a task whose falsification it could profit from.
 - **Collateral trades against audit frequency.** More stake means a lower audit rate suffices. We
-  claim no part of this: the condition belongs to the inspection-game and proof-of-stake slashing
-  lineage [21,22], and the verifiable-inference literature states it as a baseline test [34].
+  claim no part of this: the condition belongs to the deterrence and inspection-game lineage
+  [21,22], and the verifiable-inference literature states it as a baseline test [34].
 - **Challenge is the cheapest deterrence available.** Routine auditing becomes economically
-  unnecessary once `q ≥ (c_exec + (1 − θ)V)/(V + λS)`. At `V = $2`, `c_exec = $1`, `θ = 0.95`,
-  `S = $30`, that threshold is `q ≈ 0.034` — if a false receipt faces better than a one-in-thirty
-  chance of challenge, the audit budget is better spent making challenge attractive than on
-  auditing. One bonded challenger watching a category can discipline every agent in it.
-- **Audit effort is set per agent, not per task.** Because the required rate depends on `θ`, and we
-  maintain a posterior over `θ` anyway, the audit rate is that condition evaluated at a pessimistic
-  estimate of the agent's capability. Weak or thinly-evidenced agents are audited more; a strong
-  record lowers the rate but never to zero. This is also what makes the mechanism sound against an
-  agent that interacts repeatedly rather than once.
-- **Concurrent exposure is capped.** One stake cannot secure unlimited simultaneous work, since
-  slashing happens once while gains scale with volume. The cap is
-  `n_max = λS / [(c_exec + (1 − θ)V) − P_d·V]` — about 30 unresolved tasks at a $30 stake, scaling
-  linearly with collateral, enforced per operator.
+  unnecessary once `q ≥ g(θ)/(V + λS)`. At `V = $2`, `c_exec = $1`, `θ = 0.95`, `S = $30`, that
+  threshold is `q ≈ 0.0625` — if a false receipt faces better than a one-in-sixteen chance of
+  challenge, the audit budget is better spent making challenge attractive than on auditing. One
+  bonded challenger watching a category can discipline every agent in it.
+- **Audit effort follows uncertainty about the agent.** Because we maintain a posterior over `θ`
+  anyway, the audit rate is the condition above evaluated at a pessimistic quantile of it. Newcomers
+  and thinly-evidenced agents are audited more; a strong record lowers the rate but never to zero.
+  This is also what makes the mechanism sound against an agent that interacts repeatedly.
+- **Concurrent exposure is bounded, and the rate is sized for the bound.** One stake cannot secure
+  unlimited simultaneous work, since the slash is incurred only if some receipt is caught while gains
+  scale with volume. Defecting on `n` concurrent tasks is unprofitable when
+  `n·(g − P_d·V) ≤ λS·[1 − (1 − P_d)^n]`; the platform fixes a per-operator allowance and sets the
+  audit rate to satisfy this at the allowance. For example, with a forgery gain of $1.10 and `P_d = 0.05`, a naive bound that charges the
+  slash as certain allows 30 concurrent tasks where the exact condition allows 18; and at `g = $2`,
+  `S = $30` the one-shot rate alone is safe for one task only.
 
-Illustratively, at those parameters the cost of trust lands at well under a cent against a dollar of
-work, where re-execution verification would cost about a dollar — half the task's price. That
-difference is what makes outcome-contingent settlement affordable per task rather than only for
-large contracts. *(Arithmetic on the model; Mergit is pre-implementation and has measured nothing.)*
+Illustratively, at those parameters the cost of trust lands at a small fraction of a cent against a
+dollar of work, where re-execution verification would cost about a dollar — half the task's price.
+That difference is what makes outcome-contingent settlement affordable per task rather than only
+for large contracts. *(Arithmetic on the model; Mergit is pre-implementation and has measured
+nothing.)* A simulation of the mechanism (full paper §7.7) tested it against six deviations and found
+no profitable one in the corrected form; it also showed that thin collateral cannot support
+concurrency, since at `S = $5` the corrected rate audits half of all tasks.
 
 ### Cost-adjusted reputation — the core idea
 
@@ -198,12 +205,13 @@ is the deeper reason task value is capped by collateral.
 
 | System | Supplies | Doesn't supply |
 |---|---|---|
-| ERC-8004 [1] | Identity, reputation, validation registries | No runtime; validation presumes re-execution; largely non-operational in practice [2,17] |
+| ERC-8004 [1] | Identity, reputation, validation registries | No runtime; names re-execution, zkML and TEE oracles as validator models but defines neither the evidence nor the economics; largely non-operational in practice [2,17] |
 | x402 [3,4] | Machine-to-machine settlement at scale | Pays for *access*, not verified outcome; final, non-revocable |
 | Virtuals ACP [6] | Escrow, evaluation, reputation-sensitive terms | Counterparty judgment, not execution attestation; cost not a trust signal |
 | Bittensor [7,8] | Stake-weighted validator scoring | Inflation-funded commodity production, not per-task settlement |
 | Olas [9,10] | Stake tied to verified activity | Activity/KPI rewards, not outcome-contingent payment with clawback |
 | Fetch.ai [11,12] | Agent identity credentials, domain-linked trust | Identity and discovery, not verification economics |
+| Attested single calls [43], insurer audit [45] | Payment bound to attested execution of one call; slashable insurer stake with TEE audit access | One request and response, or verification assumed errorless; no receipt structure, audit rate, concurrency bound, cost-aware reputation or routing |
 | Verifiable inference [34,35,36] | Stake, probabilistic audit, slashing, challenge, repeated-game analysis, reputation-weighted penalties | **Assumes re-executability** — disputes terminate in deterministic replay; reputation weights penalties, not selection, and excludes cost |
 
 We are explicit about what is not ours. The stake-versus-audit-rate condition belongs to the
@@ -213,8 +221,11 @@ Reputation itself is not new even in this literature — [34] maintains a Bayesi
 provider type to scale penalties — though it is not used for *selection* and does not include cost.
 
 The gap we claim is correspondingly narrow and, we think, defensible: **no existing protocol
-verifies multi-step, tool-using, side-effecting agent work under economic incentives, and none uses
-reputation over verified quality *per unit cost* to route work.**
+specifies verification of multi-step, tool-using, side-effecting agent work by audit of runtime
+evidence, under a dispute path that need not end in re-execution, and none uses reputation over
+verified quality *per unit cost* to route work.** The nearest proposals bind payment to the
+TEE-attested execution of a single service call [43] or propose staked insurers with TEE audit access
+while treating verification as an errorless oracle [45].
 
 ## 5. What we are not claiming
 
@@ -235,9 +246,10 @@ longer than this section; the essentials:
   replayed. This is the principal cost of our setting.
 - **Repeated-game soundness is argued, not proven.** A one-shot audit threshold is provably
   insufficient against a provider interacting repeatedly when slashing is partial [34]. We respond
-  with a posterior-derived audit rate, an explicit concurrency cap, and probation on proven
-  falsification, and argue these leave no profitable deviation — but that is a derivation under our
-  assumptions, not a theorem in [34]'s framework. Their framework also concerns *restaked*
+  with a posterior-derived audit rate, a concurrency allowance for which the rate is sized, and
+  probation on proven falsification, and argue these leave no profitable deviation — a derivation
+  under our assumptions, tested by simulation against the deviations we could enumerate (which found
+  two errors in our first version), not a theorem in [34]'s framework. Their framework also concerns *restaked*
   collateral, where the same stake may secure obligations outside Mergit, making our treatment of
   recoverable value optimistic by an amount we cannot yet quantify.
 - **Routine verification is centralized at v1.** We operate validators initially; challenge is

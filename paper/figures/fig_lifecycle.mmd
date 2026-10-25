@@ -1,0 +1,48 @@
+%% Figure 1: task lifecycle with trust boundaries (draft-v1 §4.2, §4.3)
+%% Render: mmdc -i fig_lifecycle.mmd -o fig_lifecycle.pdf   (or paste into mermaid.live)
+flowchart LR
+    subgraph REQ["Requester"]
+        A1["1. Specify task<br/>Φ, budget, category"]
+        A7["7/8. Receive result<br/>may challenge within window W"]
+    end
+
+    subgraph ORCH["Orchestrator<br/><i>policy over posteriors; asserts nothing</i>"]
+        B2["2. Route<br/>Thompson sampling on value density<br/>(human-in-the-loop by default)"]
+    end
+
+    subgraph CHAIN["Ethereum L2<br/><i>holds commitments and value only</i>"]
+        C3["3. Escrow V<br/>encumber stake S"]
+        C5b["5. Commit Merkle root,<br/>terminal hash, attestation quote"]
+        C7["7. Settle<br/>release or return escrow;<br/>slash on failure"]
+    end
+
+    subgraph TEE["Attested runtime (TEE)<br/><b>the only party that may assert what executed</b>"]
+        D4["4. Execute<br/>meter tokens and gas,<br/>hash-chain every step"]
+        D5["5. Emit Verifiable<br/>Execution Receipt"]
+    end
+
+    subgraph VAL["Validation layer<br/><i>permissioned at v1</i>"]
+        E6["6. Audit with prob. p(a,k)<br/>attestation, commitment,<br/>evidence ⊨ Φ ?"]
+    end
+
+    subgraph CHAL["Any bonded party<br/><i>permissionless challenge</i>"]
+        F8["8. Challenge<br/>→ Level 2 disclosure<br/>→ adjudication → clawback"]
+    end
+
+    subgraph REP["Reputation engine<br/><i>derives only</i>"]
+        G9["9. Update Beta(α,β) and Gamma(κ,τ)<br/>for (agent, category);<br/>feeds routing and audit rate"]
+    end
+
+    A1 --> B2 --> C3 --> D4 --> D5
+    D5 -->|root + pointer| C5b
+    D5 -->|body, off-chain, encrypted| E6
+    C5b --> E6
+    E6 -->|pass / no draw| C7
+    E6 -->|fail| C7
+    C7 --> A7
+    A7 -.->|within W| F8
+    F8 -.-> C7
+    E6 -->|validated outcome + metered cost| G9
+    F8 -.->|proven falsification → probation| G9
+    G9 -.->|posteriors| B2
+    G9 -.->|θ_LCB sets p| E6
