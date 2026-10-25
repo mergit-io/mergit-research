@@ -118,9 +118,16 @@ def sha256(path: Path) -> str:
 
 
 def logo_svg() -> str:
-    """The Mergit symbol, unchanged apart from decorative-image attributes."""
-    svg = (SITE / "brand" / "symbol.svg").read_text(encoding="utf-8")
-    return re.sub(r'role="img"><title>[^<]*</title>', 'class="mark" aria-hidden="true" focusable="false">', svg)
+    """The coloured Mergit symbol: the light-background variant on Porcelain, the dark-background one on Porcelain Night.
+    Both are inlined (gradient ids made unique) and CSS shows the one that matches the theme."""
+    out = []
+    for name in ("light", "dark"):
+        svg = (SITE / "brand" / f"symbol-{name}.svg").read_text(encoding="utf-8")
+        svg = re.sub(r'role="img"><defs>', f'class="mark mark-{name}" aria-hidden="true" focusable="false"><defs>', svg, count=1)
+        svg = re.sub(r"<title>[^<]*</title>", "", svg)
+        svg = svg.replace("mgpt", f"mgpt-{name}").replace("mgpb", f"mgpb-{name}")
+        out.append(svg)
+    return "".join(out)
 
 
 def social_meta(title: str, description: str, url: str) -> str:

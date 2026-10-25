@@ -123,7 +123,14 @@ img, svg { max-width: 100%; }
 .bar-in, .foot-in { max-width: var(--page); margin: 0 auto; padding: 0 1rem; }
 .bar-in { display: flex; align-items: center; justify-content: space-between; height: 3.4rem; }
 .brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink); text-decoration: none; font-weight: 600; letter-spacing: -0.01em; }
-.brand .mark { width: 1.45rem; height: 1.45rem; color: var(--ink); }
+.brand .mark { width: 1.6rem; height: 1.6rem; }
+.brand .mark-dark { display: none; }
+:root[data-theme="dark"] .brand .mark-light { display: none; }
+:root[data-theme="dark"] .brand .mark-dark { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .mark-light { display: none; }
+  :root:not([data-theme="light"]) .brand .mark-dark { display: inline; }
+}
 .bar nav { display: flex; gap: 1.4rem; font-size: 0.92rem; }
 .bar nav a { color: var(--ink2); text-decoration: none; padding: 0.2rem 0; border-bottom: 2px solid transparent; }
 .bar nav a:hover { color: var(--ink); }
